@@ -1,0 +1,20 @@
+defaults:
+  - dataset: IFS
+  - model: swin_unet_2d 
+  - trainer: train_config
+  - _self_
+
+experiment:
+  name: test
+  sub_name: test_exp
+
+hydra:
+  job:
+    config:
+      override_dirname:
+        kv_sep: ''
+  run:
+    dir: ./experiments/${experiment.name}/${experiment.sub_name}
+  sweep:
+    dir: ./experiments/${experiment.name}/
+    subdir: ${hydra.job.override_dirname}

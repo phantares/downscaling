@@ -1,0 +1,15 @@
+defaults:
+  - loss: weightedMSE
+  - _self_
+
+optimizer:
+  lr: 0.0002
+  betas1: 0.5
+  betas2: 0.999
+
+data_config:
+  batch_size: 20
+  num_workers: 4
+
+evaluate_freq: 1
+max_epochs: 4000

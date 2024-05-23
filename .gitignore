@@ -1,0 +1,7 @@
+__pycache__/
+logs/
+checkpoints/
+experiments/*
+!experiments/config/
+*.ipynb
+*.png

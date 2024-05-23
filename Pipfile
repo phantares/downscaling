@@ -1,0 +1,30 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://download.pytorch.org/whl/cu121"
+verify_ssl = true
+name = "downloadpytorch"
+
+[packages]
+torch = {version = "==2.1.1", index = "downloadpytorch"}
+torchvision = {version = "==0.16.1", index = "downloadpytorch"}
+torchaudio = {version = "==2.1.1", index = "downloadpytorch"}
+numpy = "*"
+tables = "*"
+pyyaml = "*"
+matplotlib = "*"
+pandas = "*"
+h5py = "*"
+imageio = "*"
+timm = "*"
+tensorboard = "*"
+hydra-core = "*"
+pytorch-lightning = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"

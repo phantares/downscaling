@@ -1,0 +1,8 @@
+name: IFS
+train:
+  - /wk1/pei/IFS/2021/IFS_2021_1of2.h5
+  - /wk1/pei/IFS/2021/IFS_2021_2of2.h5
+val:
+  - /wk1/pei/IFS/2022/IFS_2022_1of2.h5
+test:
+  - /wk1/pei/IFS/2022/IFS_2022_2of2.h5
