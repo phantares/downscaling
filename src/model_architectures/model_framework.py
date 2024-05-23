@@ -16,7 +16,7 @@ class ModelFramework(LightningModule):
 
         self.model = ModelType[model_name].value(**model_config)
         self.loss = LossType[loss_name].value(**loss_config)
-        self.optimizer = optimizer_config
+        self.optimizer_config = optimizer_config
 
     def forward(self):
         pass
@@ -35,7 +35,7 @@ class ModelFramework(LightningModule):
             sync_dist=True,
         )
 
-        if stage == "val" and batch_index in range(1, 11, 2):
+        if stage == "val" and batch_index in [1, 69, 147, 600, 900]:
             self.log_tensorboard_images(
                 batch_index,
                 input[0, 0],
@@ -48,8 +48,7 @@ class ModelFramework(LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             self.parameters(),
-            lr=self.optimizer["lr"],
-            betas=(self.optimizer["betas1"], self.optimizer["betas2"]),
+            **self.optimizer_config,
         )
 
         return optimizer

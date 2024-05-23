@@ -12,7 +12,7 @@ hydra:
   job:
     config:
       override_dirname:
-        kv_sep: ''
+        kv_sep: '_'
   run:
     dir: ./experiments/${experiment.name}/${experiment.sub_name}
   sweep:
