@@ -1,7 +1,8 @@
 defaults:
   - dataset: IFS
   - model: swin_unet_2d 
-  - trainer: train_config
+  - trainer: swin
+  - trainer/loss: weightedMSE
   - _self_
 
 experiment:
@@ -13,6 +14,10 @@ hydra:
     config:
       override_dirname:
         kv_sep: '_'
+        item_sep: '-'
+        exclude_keys:
+          - experiment.name
+          - trainer
   run:
     dir: ./experiments/${experiment.name}/${experiment.sub_name}
   sweep:
