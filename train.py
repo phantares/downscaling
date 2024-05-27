@@ -9,7 +9,7 @@ from src.data_loaders.hdf5_loader import Hdf5Loader
 from src.model_architectures.model_framework import ModelFramework
 
 
-@hydra.main(version_base=None, config_path="experiments/config", config_name="config")
+@hydra.main(version_base=None, config_path="experiments/config", config_name="train")
 def main(cfg: DictConfig) -> None:
     hydra_config = hydra.core.hydra_config.HydraConfig.get()
 
@@ -32,16 +32,19 @@ def main(cfg: DictConfig) -> None:
         cfg.trainer.optimizer,
     )
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=Path("checkpoints", experiment_name, sub_experiment_name),
-        filename="{epoch}-{val_loss_epoch:.6f}",
-        monitor="val_loss_epoch",
-        save_top_k=3,
-        save_last=True,
-        mode="min",
-    )
+    callbacks = [
+        ModelCheckpoint(
+            dirpath=Path("checkpoints", experiment_name, sub_experiment_name),
+            filename="{epoch}-{val_loss_epoch:.6f}",
+            monitor="val_loss_epoch",
+            save_top_k=3,
+            save_last=True,
+            mode="min",
+        )
+    ]
 
-    early_stopping_callback = EarlyStopping(monitor="val_loss_epoch", patience=5)
+    if cfg.trainer.early_stopping:
+        callbacks.append(EarlyStopping(**cfg.trainer.early_stopping))
 
     trainer = Trainer(
         benchmark=True,
@@ -49,7 +52,7 @@ def main(cfg: DictConfig) -> None:
         max_epochs=cfg.trainer.max_epochs,
         accelerator="gpu",
         devices=[1],
-        callbacks=[checkpoint_callback, early_stopping_callback],
+        callbacks=callbacks,
     )
     trainer.fit(model, data_loader)
 
