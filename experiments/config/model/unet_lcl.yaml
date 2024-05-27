@@ -10,7 +10,11 @@ sampling:
   stride: 2
   padding: 0
 img_size: [112, 96]
-avg_pooling:
-  kernel_size: 1
+lcl:
+  kernel_size: 3
   stride: 1
-  padding: 0
+  padding: 1
+avg_pooling:
+  kernel_size: 3
+  stride: 1
+  padding: 1

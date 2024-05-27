@@ -10,4 +10,6 @@ data_config:
 
 max_epochs: 200
 
-early_stopping: True
+early_stopping:
+  patience: 8
+  monitor: val_loss_epoch
