@@ -35,13 +35,17 @@ class ModelFramework(LightningModule):
             sync_dist=True,
         )
 
-        if stage == "val" and batch_index in [1, 69, 147, 600, 900]:
-            self.log_tensorboard_images(
-                batch_index,
-                input[0, 0],
-                target[0, 0],
-                output[0, 0],
-            )
+        if stage == "train" and batch_index == 0:
+            self.log_tensorboard_image(batch_index, "input", input[0, 0])
+            self.log_tensorboard_image(batch_index, "target", target[0, 0])
+            self.log_tensorboard_image(batch_index, "output", output[0, 0])
+
+        if stage == "val" and batch_index in [1, 13, 16, 19]:
+            if self.current_epoch == 1:
+                self.log_tensorboard_image(batch_index, "input", input[0, 0])
+                self.log_tensorboard_image(batch_index, "target", target[0, 0])
+
+            self.log_tensorboard_image(batch_index, "output", output[0, 0])
 
         return loss
 
@@ -62,17 +66,15 @@ class ModelFramework(LightningModule):
     def test_step(self, batch, batch_index: int):
         return self.general_step(batch, batch_index, "test")
 
-    def log_tensorboard_images(self, batch_index: int, *datas):
+    def log_tensorboard_image(self, batch_index: int, title: str, data):
         logger = self.get_tensorboard_logger()
 
-        data_label = ["input", "target", "output"]
-        for i, data in enumerate(datas):
-            plotter = MapPlotter(data)
-            logger.add_figure(
-                f"case_{batch_index}/{data_label[i]}",
-                plotter.plot_map(),
-                global_step=self.global_step,
-            )
+        plotter = MapPlotter(data)
+        logger.add_figure(
+            f"case_{batch_index}/{title}",
+            plotter.plot_map(),
+            global_step=self.global_step,
+        )
 
     def get_tensorboard_logger(self):
         for logger in self.trainer.loggers:
