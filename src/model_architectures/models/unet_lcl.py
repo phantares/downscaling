@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 import math
 
+from .locally_connected_2d import LocallyConnected2d
 
-class UNet(nn.Module):
+
+class UNetLCL(nn.Module):
     def __init__(
         self, in_channels=1, out_channels=1, features=64, num_layers=3, **configs
     ):
@@ -61,10 +63,15 @@ class UNet(nn.Module):
                         features // 4 ** (i + 1),
                         **configs["conv"],
                     )
-                    for i in range(int(math.log(features, 4)) - int(math.log(4, 4)))
+                    for i in range(int(math.log(features, 4)) - int(math.log(16, 4)))
                 ],
-                nn.Conv2d(4, out_channels, **configs["conv"]),
+                nn.Conv2d(16, 4, **configs["conv"]),
                 nn.ReLU(),
+                LocallyConnected2d(
+                    configs["img_size"], 4, out_channels, **configs["lcl"]
+                ),
+                nn.ReLU(),
+                nn.AvgPool2d(**configs["avg_pooling"], count_include_pad=False),
             ]
         )
 

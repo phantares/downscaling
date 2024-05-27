@@ -72,6 +72,9 @@ class SwinUnet2D(nn.Module):
         self.patch_recovery = nn.ConvTranspose2d(
             embed_dim * 2, 1, kernel_size=patch_size, stride=patch_size, padding=0
         )
+        self.avg_pool = nn.AvgPool2d(
+            kernel_size=3, stride=1, padding=1, count_include_pad=False
+        )
 
     def visual_layers(self, x):
         x = self.patch_embedded(x)
@@ -95,6 +98,7 @@ class SwinUnet2D(nn.Module):
             self.patches_resolution[1],
         )
         x = self.patch_recovery(x)
+        x = self.avg_pool(x)
 
         return x
 
