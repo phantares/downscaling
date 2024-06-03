@@ -13,43 +13,22 @@ class ModelFramework(LightningModule):
         self, model_name, model_config, loss_name, loss_config, optimizer_config
     ):
         super().__init__()
+        self.save_hyperparameters()
 
         self.model = ModelType[model_name].value(**model_config)
         self.loss = LossType[loss_name].value(**loss_config)
         self.optimizer_config = optimizer_config
 
-    def forward(self):
-        pass
+        self.test_outputs = []
 
-    def general_step(self, batch, batch_index: int, stage: str):
-        input, target = batch
-        output = self.model(input)
+    def forward(self, input):
+        return self.model(input)
+
+    def general_step(self, input, target):
+        output = self(input)
         loss = self.loss(output, target)
 
-        self.log(
-            f"{stage}_loss",
-            loss,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            sync_dist=True,
-        )
-
-        if stage == "train" and batch_index == 0:
-            self.log_tensorboard_image(f"{stage}/input", input[0, 0])
-            self.log_tensorboard_image(f"{stage}/target", target[0, 0])
-            self.log_tensorboard_image(f"{stage}/output", output[0, 0])
-
-        if stage == "val" and batch_index in [1, 13, 16, 19]:
-            case = f"case_{batch_index}"
-
-            if self.current_epoch == 1:
-                self.log_tensorboard_image(f"{case}/input", input[0, 0])
-                self.log_tensorboard_image(f"{case}/target", target[0, 0])
-
-            self.log_tensorboard_image(f"{case}/output", output[0, 0])
-
-        return loss
+        return loss, output
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -60,13 +39,56 @@ class ModelFramework(LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_index: int):
-        return self.general_step(batch, batch_index, "train")
+        input, target = batch
+        loss, output = self.general_step(input, target)
+
+        self.log(
+            f"train_loss",
+            loss,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+
+        if batch_index == 0:
+            self.log_tensorboard_image(f"train/input", input[0, 0])
+            self.log_tensorboard_image(f"train/target", target[0, 0])
+            self.log_tensorboard_image(f"train/output", output[0, 0])
+
+        return loss
 
     def validation_step(self, batch, batch_index: int):
-        return self.general_step(batch, batch_index, "val")
+        input, target = batch
+        loss, output = self.general_step(input, target)
+
+        self.log(
+            f"val_loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+
+        if batch_index in [1, 13, 16, 19]:
+            case = f"case_{batch_index}"
+
+            if self.current_epoch == 1:
+                self.log_tensorboard_image(f"{case}/input", input[0, 0])
+                self.log_tensorboard_image(f"{case}/target", target[0, 0])
+
+            self.log_tensorboard_image(f"{case}/output", output[0, 0])
+
+        return loss
 
     def test_step(self, batch, batch_index: int):
-        return self.general_step(batch, batch_index, "test")
+        input, target = batch
+        loss, output = self.general_step(input, target)
+
+        self.test_outputs.append(output.numpy())
+
+        return loss
 
     def log_tensorboard_image(self, title: str, data):
         logger = self.get_tensorboard_logger()

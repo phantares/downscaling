@@ -35,8 +35,8 @@ def main(cfg: DictConfig) -> None:
     callbacks = [
         ModelCheckpoint(
             dirpath=Path("checkpoints", experiment_name, sub_experiment_name),
-            filename="{epoch}-{val_loss_epoch:.6f}",
-            monitor="val_loss_epoch",
+            filename="{epoch}-{val_loss:.6f}",
+            monitor="val_loss",
             save_top_k=3,
             save_last=True,
             mode="min",

@@ -48,7 +48,7 @@ class Hdf5Dataset(Dataset):
 
         for file in self.files:
             data = np.stack(
-                [np.sum(file[variable], axis=-1) for variable in variables_name],
+                [file[variable] for variable in variables_name],
                 axis=0,
             )
             datas.append(data)
