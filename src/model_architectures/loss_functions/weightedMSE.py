@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
+
 class WeightedMSE(nn.Module):
-    
+
     def __init__(self, weights, thresholds):
         super().__init__()
 
@@ -18,6 +19,10 @@ class WeightedMSE(nn.Module):
         weights_sum = (target >= thresholds[-1]).float() * weights[-1]
 
         for i, threshold in enumerate(thresholds[:-1]):
-            weights_sum = weights_sum + ((target >= threshold) & (target < thresholds[i + 1])).float() * weights[i]
-        
+            weights_sum = (
+                weights_sum
+                + ((target >= threshold) & (target < thresholds[i + 1])).float()
+                * weights[i]
+            )
+
         return weights_sum

@@ -2,7 +2,7 @@ defaults:
   - dataset: IFS
   - model: swin_unet_2d 
   - trainer: swin
-  - trainer/loss: weightedMSE
+  - trainer/loss: SPL 
   - _self_
 
 experiment:
