@@ -4,7 +4,41 @@ from timm.models.layers import DropPath
 
 
 class SwinTransformerLayer(nn.Module):
-    pass
+    def __init__(
+        self,
+        input_shape: tuple[int],
+        dim: int,
+        heads: int,
+        depth: int,
+        window_shape: tuple[int],
+        drop=0.0,
+        attn_drop=0.0,
+        drop_path=0.0,
+    ) -> None:
+
+        super().__init__()
+
+        self.blocks = nn.ModuleList(
+            [
+                SwinTransformerBlock(
+                    input_shape,
+                    dim,
+                    heads,
+                    window_shape,
+                    roll=(i % 2 == 1),
+                    drop=drop,
+                    attn_drop=attn_drop,
+                    drop_path=drop_path,
+                )
+                for i in range(depth)
+            ]
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for layer in self.blocks:
+            x = layer(x)
+
+        return x
 
 
 class SwinTransformerBlock(nn.Module):
