@@ -3,6 +3,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 
 from src.model_architectures.models import ModelType
+from src.model_architectures.lr_scheduler import get_scheduler_with_warmup
 from src.model_architectures.loss_functions.loss_type import LossType
 from src.figure_plotters.map_plotter import MapPlotter
 
@@ -10,14 +11,23 @@ from src.figure_plotters.map_plotter import MapPlotter
 class ModelFramework(LightningModule):
 
     def __init__(
-        self, model_name, model_config, loss_name, loss_config, optimizer_config
+        self,
+        model_name,
+        model_config,
+        loss_name,
+        loss_config,
+        optimizer_name,
+        optimizer_config,
+        lr_scheduler: None,
     ):
         super().__init__()
         self.save_hyperparameters()
 
         self.model = ModelType[model_name].value(**model_config)
         self.loss = LossType[loss_name].value(**loss_config)
+        self.optimizer = optimizer_name
         self.optimizer_config = optimizer_config
+        self.lr_scheduler = lr_scheduler
 
         self.test_outputs = []
 
@@ -31,10 +41,24 @@ class ModelFramework(LightningModule):
         return loss, output
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
-            self.parameters(),
-            **self.optimizer_config,
+        optimizer = getattr(torch.optim, self.optimizer)(
+            self.parameters(), **self.optimizer_config
         )
+
+        if self.lr_scheduler:
+            lr_scheduler = get_scheduler_with_warmup(
+                optimizer,
+                **self.lr_scheduler,
+            )
+
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": lr_scheduler,
+                    "interval": "step",
+                    "frequency": 1,
+                },
+            }
 
         return optimizer
 
