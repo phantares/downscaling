@@ -110,6 +110,15 @@ class ModelFramework(LightningModule):
         input, target = batch
         loss, output = self.general_step(input, target)
 
+        self.log(
+            f"test_loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            sync_dist=True,
+        )
+
         self.test_outputs.append(output.numpy())
 
         return loss
