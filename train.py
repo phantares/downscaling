@@ -2,7 +2,11 @@ from pathlib import Path
 from omegaconf import DictConfig
 import hydra
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    LearningRateMonitor,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from src.data_loaders.hdf5_loader import Hdf5Loader
@@ -29,7 +33,9 @@ def main(cfg: DictConfig) -> None:
         cfg.model,
         hydra_config.runtime.choices["trainer/loss"],
         cfg.trainer.loss,
-        cfg.trainer.optimizer,
+        hydra_config.runtime.choices["trainer/optimizer"],
+        cfg.trainer.optimizer.config,
+        cfg.trainer.optimizer.lr_scheduler,
     )
 
     callbacks = [
@@ -45,6 +51,8 @@ def main(cfg: DictConfig) -> None:
 
     if cfg.trainer.early_stopping:
         callbacks.append(EarlyStopping(**cfg.trainer.early_stopping))
+    if cfg.trainer.optimizer.lr_scheduler:
+        callbacks.append(LearningRateMonitor(logging_interval="step"))
 
     trainer = Trainer(
         benchmark=True,
