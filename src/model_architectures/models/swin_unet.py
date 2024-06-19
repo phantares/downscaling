@@ -92,7 +92,7 @@ class SwinUnet(nn.Module):
             self.layers.append(layer)
 
         self.patch_recover = PatchRecovery(
-            output_shape=(Z, H, W),
+            input_shape=(Z, H, W),
             patch_shape=patch_shape[1:],
             dim=embed_dim * 2,
         )
