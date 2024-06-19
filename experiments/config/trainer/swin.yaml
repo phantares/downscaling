@@ -1,12 +1,9 @@
-optimizer:
-  lr: 0.0002
-  betas: [0.5, 0.999]
-  eps: 0.00000001
-
 data_config:
   batch_size: 20
   num_workers: 4
 
 max_epochs: 4000
 
-early_stopping: False
+early_stopping:
+  patience: 50
+  monitor: val_loss
