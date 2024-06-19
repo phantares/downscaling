@@ -12,7 +12,6 @@ name = "downloadpytorch"
 torch = {version = "==2.1.1", index = "downloadpytorch"}
 torchvision = {version = "==0.16.1", index = "downloadpytorch"}
 torchaudio = {version = "==2.1.1", index = "downloadpytorch"}
-numpy = "*"
 tables = "*"
 pyyaml = "*"
 matplotlib = "*"
@@ -23,6 +22,8 @@ timm = "*"
 tensorboard = "*"
 hydra-core = "*"
 pytorch-lightning = "*"
+einops = "*"
+numpy = "==1.26.4"
 
 [dev-packages]
 

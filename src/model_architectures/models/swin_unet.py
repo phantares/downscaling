@@ -4,7 +4,11 @@ import torch.nn as nn
 from .swin_transformer import SwinTransformerLayer
 
 
-class SwinUnet(nn.module):
+class SwinUnet(nn.Module):
+    """
+    3D SwinUnet similar to Pangu-Weather.
+    """
+
     def __init__(
         self,
         image_shape: tuple[int, int],
@@ -16,23 +20,39 @@ class SwinUnet(nn.module):
         surface_channels: int,
         upper_channels: int = 0,
         upper_levels: int = 0,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        drop_path_rate=0.1,
+        drop_rate: float = 0.0,
+        attn_drop_rate: float = 0.0,
+        drop_path_rate: float = 0.2,
+        **avg_pool_configs,
     ) -> None:
+        """
+        Args:
+            image_shape (tuple[int, int]): Shape of input image (imgH, imgW).
+            patch_shape (tuple[int, int, int]): Shape of patch (pZ, pH, pW).
+            window_shape (tuple[int, int, int]): Shape of window (wZ, wH, wW).
+            embed_dim (int): Dimension of patch embedding.
+            heads (list[int]): Number of attention heads in each layer.
+            depths (list[int]): Number of swin transformer blocks in each layer.
+            surface_channels (int): Channels of surface variables.
+            upper_channels (int, optional): Channels of upper variables. Default: 0
+            upper_levels (int, optional): Number of levels in upper tensor. Default: 0
+            drop_rate (float, optional): Dropout rate. Default: 0.0
+            attn_drop (float, optional): Attention dropout rate. Default: 0.0
+            drop_path_rate (float, optional): Maximum of stochastic depth rate. Default: 0.2
+            avg_pool_configs: Settings for AvgPool2d.
+        """
 
         super().__init__()
 
         num_layers = len(depths)
         image_shape = [upper_levels] + image_shape
+        dpr = torch.linspace(0, drop_path_rate, sum(depths))
 
         Z, H, W = map(lambda x, y: x // y, image_shape, patch_shape)
         Z += 1  # surface
 
-        dpr = torch.linspace(0, drop_path_rate, sum(depths))
-
         self.patch_embed = PatchEmbedding(
-            patch_shape,
+            patch_shape=patch_shape,
             dim=embed_dim,
             surface_channels=surface_channels,
             upper_channels=upper_channels,
@@ -40,18 +60,17 @@ class SwinUnet(nn.module):
 
         self.layers = nn.ModuleList()
         for i, depth in enumerate(depths):
-            layer = (
-                SwinTransformerLayer(
-                    input_shape=(Z, H // (2**i), W // (2**i)),
-                    dim=embed_dim * (2**i),
-                    heads=heads[i],
-                    depth=depth,
-                    window_shape=window_shape,
-                    drop=drop_rate,
-                    attn_drop=attn_drop_rate,
-                    drop_path=dpr[sum(depths[:i]) : sum(depths[: i + 1])],
-                ),
+            layer = SwinTransformerLayer(
+                input_shape=(Z, H // (2**i), W // (2**i)),
+                dim=embed_dim * (2**i),
+                heads=heads[i],
+                depth=depth,
+                window_shape=window_shape,
+                drop=drop_rate,
+                attn_drop=attn_drop_rate,
+                drop_path=dpr[sum(depths[:i]) : sum(depths[: i + 1])],
             )
+
             self.layers.append(layer)
 
         self.downsample = DownSample(input_shape=(Z, H, W), dim=embed_dim)
@@ -60,27 +79,25 @@ class SwinUnet(nn.module):
 
         for i, depth in enumerate(reversed(depths), start=1):
             j = num_layers - i
-            layer = (
-                SwinTransformerLayer(
-                    input_shape=(Z, H // (2**j), W // (2**j)),
-                    dim=embed_dim * (2**j),
-                    heads=heads[j],
-                    depth=depth,
-                    window_shape=window_shape,
-                    drop=drop_rate,
-                    attn_drop=attn_drop_rate,
-                    drop_path=dpr[sum(depths[:j]) : sum(depths[: j + 1])],
-                ),
+            layer = SwinTransformerLayer(
+                input_shape=(Z, H // (2**j), W // (2**j)),
+                dim=embed_dim * (2**j),
+                heads=heads[j],
+                depth=depth,
+                window_shape=window_shape,
+                drop=drop_rate,
+                attn_drop=attn_drop_rate,
+                drop_path=dpr[sum(depths[:j]) : sum(depths[: j + 1])],
             )
             self.layers.append(layer)
 
         self.patch_recover = PatchRecovery(
             output_shape=(Z, H, W),
-            patch_shape=patch_shape,
-            upper_channels=upper_channels,
-            surface_channels=surface_channels,
+            patch_shape=patch_shape[1:],
             dim=embed_dim * 2,
         )
+
+        self.avg_pool = nn.AvgPool2d(**avg_pool_configs, count_include_pad=False)
 
     def forward(
         self,
@@ -88,47 +105,49 @@ class SwinUnet(nn.module):
         input_upper: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        Unet structure.
-
         Args:
-            input_upper (torch.Tensor): Tensor of shape (B, img_Z, img_H, img_W, Ch_upper).
-            input_surface (torch.Tensor): Tensor of shape (B, 1, img_H, img_W, Ch_surface).
+            input_surface (torch.Tensor): (B, C_surface, imgH, imgW).
+            input_upper (torch.Tensor, optional): (B, C_upper, imgZ, imgH, imgW).
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: Tuple of upper-air data and surface data.
+            x (torch.Tensor): (B, 1, imgH, imgW)
         """
-        # left side
+
         x = self.patch_embed(input_surface, input_upper)
-        x = self.layer[0](x)
+        x = self.layers[0](x)
         skip = x
         x = self.downsample(x)
-        x = self.layer[1](x)
-        # right side
-        x = self.layer[2](x)
+        x = self.layers[1](x)
+
+        x = self.layers[2](x)
         x = self.upsample(x)
-        x = self.layer[3](x)
+        x = self.layers[3](x)
         x = torch.cat([skip, x], dim=-1)
-        output_surface, output_upper = self.patch_recover(x)
+        x = self.patch_recover(x)
+        x = self.avg_pool(x)
 
-        return output_surface, output_upper
+        return x
 
 
-class PatchEmbedding(nn.module):
+class PatchEmbedding(nn.Module):
+    """
+    Convert input fields to patches and lineraly embed them.
+    """
+
     def __init__(
         self,
-        patch_shape: tuple[int],
+        patch_shape: tuple[int, int, int],
         dim: int,
         surface_channels: int,
         upper_channels: int = 0,
     ) -> None:
         """
-        convert input fields to patches and linearly embed them.
-
         Args:
-            patch_shape (tuple[int, int, int]): Size of the patch (pZ, pH, pW).
-            dim (int): Dimension of the output embedding.
+            patch_shape (tuple[int, int, int]): Shape of patch (pZ, pH, pW).
+            dim (int): Dimension of output embedding.
             surface_channels (int): Channels of surface variables.
-            upper_channels (int): Channels of upper-air variables.
+            upper_channels (int, optional): Channels of upper variables. Default: 0
         """
+
         super().__init__()
 
         self.conv_surface = nn.Conv2d(
@@ -153,10 +172,10 @@ class PatchEmbedding(nn.module):
     ) -> torch.Tensor:
         """
         Args:
-            input_surface (torch.Tensor): Tensor of shape (B, C_surface, H, W).
-            input_upper (torch.Tensor): Tensor of shape (B, C_upper, Z, H, W).
+            input_surface (torch.Tensor): (B, C_surface, imgH, imgW).
+            input_upper (torch.Tensor, optional): (B, C_upper, imgZ, imgH, imgW).
         Returns:
-            torch.Tensor: Tensor of shape (batch_size, Z*H*W, dim).
+            x (torch.Tensor): (B, Z*H*W, dim).
         """
 
         embedding_surface = self.conv_surface(input_surface)  # (B, dim, H, W)
@@ -172,82 +191,71 @@ class PatchEmbedding(nn.module):
         return x
 
 
-class PatchRecovery(nn.module):
+class PatchRecovery(nn.Module):
+    """
+    Recover output fields to 1 surface channel from patches.
+    """
+
     def __init__(
         self,
-        output_shape: tuple[int],
-        patch_shape: tuple[int],
+        input_shape: tuple[int, int, int],
+        patch_shape: tuple[int, int],
         dim: int,
-        surface_channels: int,
-        upper_channels: int = 0,
     ) -> None:
         """
-        convert input fields to patches and linearly embed them.
 
         Args:
-            patch_shape (tuple[int, int, int]): Size of the patch (pZ, pH, pW).
-            dim (int): Dimension of the output embedding.
-            surface_channels (int): Channels of surface variables.
-            upper_channels (int): Channels of upper-air variables.
+            input_shape (tuple[int, int, int]): Shape of input after patch embedding (Z, H, W).
+            patch_shape (tuple[int, int]): Shape of patch (pH, pW).
+            dim (int): Numbers of input channels.
         """
+
         super().__init__()
 
-        self.Z, self.H, self.W = output_shape
-        self.upper_channels = upper_channels
+        self.Z, self.H, self.W = input_shape
 
-        self.conv_surface = nn.ConvTranspose2d(
+        self.deconv = nn.ConvTranspose2d(
             in_channels=dim,
-            out_channels=surface_channels,
-            kernel_size=patch_shape[1:],
-            stride=patch_shape[1:],
+            out_channels=1,
+            kernel_size=patch_shape,
+            stride=patch_shape,
         )
-
-        if upper_channels > 0:
-            self.conv_upper = nn.ConvTranspose3d(
-                in_channels=dim,
-                out_channels=upper_channels,
-                kernel_size=patch_shape,
-                stride=patch_shape,
-            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            torch.Tensor: Tensor of shape (batch_size, Z*H*W, dim).
+            x (torch.Tensor): (B, Z*H*W, dim).
         Returns:
-            output_surface (torch.Tensor): Tensor of shape (B, C_surface, H, W).
-            output_upper (torch.Tensor): Tensor of shape (B, C_upper, Z, H, W).
+            x (torch.Tensor): (B, 1, imgH, imgW).
         """
 
         B, L, C = x.shape
 
         x = x.permute(0, 2, 1)
-        x = x.reshape(B, self.Z, self.H, self.W, C)
-        output_surface = self.conv_surface(
+        x = x.reshape(B, C, self.Z, self.H, self.W)
+        x = self.deconv(
             x[
                 :,
                 :,
                 -1,
             ]
         )
-        output_surface = torch.squeeze(output_surface, -3)
 
-        if self.upper_channels > 0:
-            output_upper = self.conv_upper(
-                x[
-                    :,
-                    :,
-                    :-1,
-                ]
-            )
-        else:
-            output_upper = None
-
-        return output_surface, output_upper
+        return x
 
 
-class DownSample(nn.module):
-    def __init__(self, input_shape: tuple[int], dim: int) -> None:
+class DownSample(nn.Module):
+    """
+    Patch merging which reduces the horizontal resolution by a factor of 2.
+    """
+
+    def __init__(self, input_shape: tuple[int, int, int], dim: int) -> None:
+        """
+        Args:
+            input_shape (tuple[int, int, int]): (Z, H, W).
+            dim (int): Number of input channels.
+        """
+
         super().__init__()
 
         self.Z, self.H, self.W = input_shape
@@ -256,6 +264,13 @@ class DownSample(nn.module):
         self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): (B, Z*H*W, dim).
+        Returns:
+            x (torch.Tensor): (B, Z * H//2 * W//2, 2*dim).
+        """
+
         B, L, C = x.shape
 
         x = x.reshape(B, self.Z, self.H, self.W, C)
@@ -270,23 +285,41 @@ class DownSample(nn.module):
 
 
 class UpSample(nn.Module):
-    def __init__(self, output_shape: tuple[int], dim: int):
+    """
+    Increases the horizontal resolution by a factor of 2.
+    """
+
+    def __init__(self, output_shape: tuple[int, int, int], dim: int):
+        """
+        Args:
+            output_shape (tuple[int, int, int]): (Z, H, W).
+            dim (int): Number of output channels.
+        """
+
         super().__init__()
 
         self.Z, self.H, self.W = output_shape
+        self.dim = dim
 
         self.linear1 = nn.Linear(2 * dim, 4 * dim, bias=False)
         self.norm = nn.LayerNorm(dim)
         self.linear2 = nn.Linear(dim, dim, bias=False)
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): (B, Z * H//2 * W//2,  2*dim).
+        Returns:
+            x (torch.Tensor): (B, Z*H*W, dim).
+        """
+
         B, L, C = x.shape
 
         x = self.linear1(x)
-        x = x.reshape(B, self.Z, self.H // 2, self.W // 2, 2, 2, C // 4)
+        x = x.reshape(B, self.Z, self.H // 2, self.W // 2, 2, 2, self.dim)
         x = x.permute(0, 1, 2, 4, 3, 5, 6)
-        x = x.reshape(B, self.Z, self.H, self.W, C // 4)
-        x = x.reshape(B, -1, C // 4)
+        x = x.reshape(B, self.Z, self.H, self.W, self.dim)
+        x = x.reshape(B, -1, self.dim)
 
         x = self.norm(x)
         x = self.linear2(x)
