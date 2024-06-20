@@ -18,7 +18,7 @@ class SwinTransformerLayer(nn.Module):
         depth: int,
         drop: float = 0.0,
         attn_drop: float = 0.0,
-        drop_path: float = 0.0,
+        drop_path: list[float] = [0.0],
     ) -> None:
         """
         Args:
@@ -44,7 +44,7 @@ class SwinTransformerLayer(nn.Module):
                     roll=(i % 2 == 1),
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i],
+                    drop_path=drop_path[i].item(),
                 )
                 for i in range(depth)
             ]

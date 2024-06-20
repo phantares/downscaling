@@ -22,7 +22,7 @@ class SwinUnet(nn.Module):
         upper_levels: int = 0,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
-        drop_path_rate: float = 0.2,
+        drop_path_rate: float = 0.1,
         **avg_pool_configs,
     ) -> None:
         """
@@ -97,6 +97,8 @@ class SwinUnet(nn.Module):
             dim=embed_dim * 2,
         )
 
+        self.activation = nn.ReLU()
+
         self.avg_pool = nn.AvgPool2d(**avg_pool_configs, count_include_pad=False)
 
     def forward(
@@ -123,6 +125,7 @@ class SwinUnet(nn.Module):
         x = self.layers[3](x)
         x = torch.cat([skip, x], dim=-1)
         x = self.patch_recover(x)
+        x = self.activation(x)
         x = self.avg_pool(x)
 
         return x
