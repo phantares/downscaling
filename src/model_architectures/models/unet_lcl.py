@@ -66,11 +66,11 @@ class UNetLCL(nn.Module):
                     for i in range(int(math.log(features, 4)) - int(math.log(16, 4)))
                 ],
                 nn.Conv2d(16, 4, **configs["conv"]),
-                nn.ReLU(),
+                nn.ReLU(inplace=True),
                 LocallyConnected2d(
                     configs["img_size"], 4, out_channels, **configs["lcl"]
                 ),
-                nn.ReLU(),
+                nn.ReLU(inplace=True),
                 nn.AvgPool2d(**configs["avg_pooling"], count_include_pad=False),
             ]
         )
@@ -104,15 +104,16 @@ class ConvolutionBlock(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, out_channels, **configs)
         self.conv2 = nn.Conv2d(out_channels, out_channels, **configs)
         self.relu = nn.ReLU(inplace=True)
-        self.bnorm = nn.BatchNorm2d(out_channels)
+        self.bnorm1 = nn.BatchNorm2d(out_channels)
+        self.bnorm2 = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.relu(x)
-        x = self.bnorm(x)
+        x = self.bnorm1(x)
         x = self.conv2(x)
         x = self.relu(x)
-        x = self.bnorm(x)
+        x = self.bnorm2(x)
 
         return x
 
