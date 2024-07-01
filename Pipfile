@@ -12,17 +12,17 @@ name = "downloadpytorch"
 torch = {version = "==2.1.1", index = "downloadpytorch"}
 torchvision = {version = "==0.16.1", index = "downloadpytorch"}
 torchaudio = {version = "==2.1.1", index = "downloadpytorch"}
-tables = "*"
-pyyaml = "*"
-matplotlib = "*"
-pandas = "*"
-h5py = "*"
-imageio = "*"
-timm = "*"
-tensorboard = "*"
-hydra-core = "*"
-pytorch-lightning = "*"
-einops = "*"
+tables = "3.9.2"
+pyyaml = "6.0.1"
+matplotlib = "3.9.0"
+pandas = "2.2.2"
+h5py = "3.11.0"
+imageio = "2.34.1"
+timm = "1.0.3"
+tensorboard = "2.17.0"
+hydra-core = "1.3.2"
+pytorch-lightning = "2.3.0"
+einops = "0.8.0"
 numpy = "==1.26.4"
 
 [dev-packages]
