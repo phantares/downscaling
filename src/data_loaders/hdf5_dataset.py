@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 import numpy as np
-from src.file_readers.hdf5_reader import Hdf5Reader
+from ..file_readers import Hdf5Reader
 
 
 class Hdf5Dataset(Dataset):

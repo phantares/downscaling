@@ -2,13 +2,12 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 
-from src.model_architectures.models import ModelType
-from src.model_architectures.lr_scheduler import get_scheduler_with_warmup
-from src.model_architectures.loss_functions.loss_type import LossType
-from src.figure_plotters.map_plotter import MapPlotter
+from .models import ModelType
+from .loss_functions import LossType
+from ..utils import get_scheduler_with_warmup, MapPlotter
 
 
-class ModelFramework(LightningModule):
+class SimpleFramework(LightningModule):
 
     def __init__(
         self,
@@ -48,6 +47,7 @@ class ModelFramework(LightningModule):
         if self.lr_scheduler:
             lr_scheduler = get_scheduler_with_warmup(
                 optimizer,
+                total_steps=int(self.trainer.estimated_stepping_batches),
                 **self.lr_scheduler,
             )
 
