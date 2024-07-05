@@ -5,5 +5,4 @@ config:
   weight_decay: 5e-4
 
 lr_scheduler:
-  warmup_steps: 1000
-  cycle_steps: 2000
+  warmup_steps: 130
