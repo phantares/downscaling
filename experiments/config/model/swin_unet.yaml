@@ -1,10 +1,12 @@
+framework: simple
 image_shape: [112, 96]
 patch_shape: [1, 4, 4]
 window_shape: [1, 7, 6]
-embed_dim: 96
+embed_dim: 192
 heads: [2, 6]
 depths: [2, 6]
 surface_channels: 1
+# average pooling
 kernel_size: 3
 stride: 1
 padding: 1

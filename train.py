@@ -9,8 +9,8 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from src.data_loaders.hdf5_loader import Hdf5Loader
-from src.model_architectures.model_framework import ModelFramework
+from src.data_loaders import Hdf5Loader
+from src.model_architectures import SimpleFramework, GanFramework
 
 
 @hydra.main(version_base=None, config_path="experiments/config", config_name="train")
@@ -28,8 +28,16 @@ def main(cfg: DictConfig) -> None:
 
     data_loader = Hdf5Loader(cfg.dataset, **cfg.trainer.data_config)
 
-    model = ModelFramework(
-        hydra_config.runtime.choices.model,
+    framework = cfg.model.framework
+    del cfg.model.framework
+    match framework:
+        case "simple":
+            framework = SimpleFramework
+        case "gan":
+            framework = GanFramework
+
+    model = framework(
+        hydra_config.runtime.choices.model.removesuffix("_gan"),
         cfg.model,
         hydra_config.runtime.choices["trainer/loss"],
         cfg.trainer.loss,
@@ -49,10 +57,10 @@ def main(cfg: DictConfig) -> None:
         )
     ]
 
+    callbacks.append(LearningRateMonitor(logging_interval="step"))
+
     if cfg.trainer.early_stopping:
         callbacks.append(EarlyStopping(**cfg.trainer.early_stopping))
-    if cfg.trainer.optimizer.lr_scheduler:
-        callbacks.append(LearningRateMonitor(logging_interval="step"))
 
     trainer = Trainer(
         benchmark=True,

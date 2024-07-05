@@ -1,0 +1,26 @@
+defaults:
+  - dataset: IFS
+  - model: unet_gan
+  - trainer: unet
+  - trainer/loss: SPL 
+  - trainer/optimizer: Adam 
+  - _self_
+
+experiment:
+  name: test
+  sub_name: test_exp
+
+hydra:
+  job:
+    config:
+      override_dirname:
+        kv_sep: '_'
+        item_sep: '-'
+        exclude_keys:
+          - experiment.name
+          - trainer
+  run:
+    dir: ./experiments/${experiment.name}/${experiment.sub_name}
+  sweep:
+    dir: ./experiments/${experiment.name}/
+    subdir: ${hydra.job.override_dirname}

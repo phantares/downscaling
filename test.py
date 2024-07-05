@@ -7,8 +7,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 import numpy as np
 import h5py
 
-from src.data_loaders.hdf5_loader import Hdf5Loader
-from src.model_architectures.model_framework import ModelFramework
+from src.data_loaders import Hdf5Loader
+from src.model_architectures import SimpleFramework, GanFramework
 
 
 def main(path: str) -> None:
@@ -17,7 +17,13 @@ def main(path: str) -> None:
     checkpoints = list(Path("checkpoints", path).glob("*.ckpt"))
     best_model = find_best_model(checkpoints)
 
-    model = ModelFramework.load_from_checkpoint(best_model)
+    framework = cfg.model.framework
+    match framework:
+        case "simple":
+            framework = SimpleFramework
+        case "gan":
+            framework = GanFramework
+    model = framework.load_from_checkpoint(best_model)
 
     data_loader = Hdf5Loader(cfg.dataset, **cfg.trainer.data_config)
 
@@ -30,7 +36,7 @@ def main(path: str) -> None:
     trainer.test(model, data_loader)
 
     input_file = str(cfg.dataset.test[0])
-    output_file = f"{path.replace('/', '_')}_{input_file.split('_')[-1]}"
+    output_file = f"{path.replace('/', '_')}_{input_file.split('_')[-2]}_{input_file.split('_')[-1]}"
     output_file = Path(input_file).parent / output_file
 
     with h5py.File(input_file, "r") as input:

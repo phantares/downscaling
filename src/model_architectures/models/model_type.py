@@ -4,6 +4,7 @@ from .swin_unet_2d import SwinUnet2D
 from .swin_unet import SwinUnet
 from .unet import UNet
 from .unet_lcl import UNetLCL
+from .discriminator import Discriminator
 
 
 class ModelType(Enum):
@@ -11,3 +12,4 @@ class ModelType(Enum):
     swin_unet = SwinUnet
     unet = UNet
     unet_lcl = UNetLCL
+    discriminator = Discriminator
