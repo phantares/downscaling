@@ -10,6 +10,20 @@ class CRPS(nn.Module):
         self.number = integral_number
 
     def forward(self, prediction, target):
+        dx = torch.abs(torch.flatten(prediction) - torch.flatten(target))
+        loss = torch.sum(dx) / torch.numel(target) ** 2
+
+        return loss
+
+
+class StandardCRPS(nn.Module):
+
+    def __init__(self, integral_number: int = 1000):
+        super().__init__()
+
+        self.number = integral_number
+
+    def forward(self, prediction, target):
         return self._calculate_crps(torch.flatten(prediction), torch.flatten(target))
 
     def _calculate_crps(self, prediction, target):
@@ -27,4 +41,4 @@ class CRPS(nn.Module):
 
     def _calculate_cdf(self, x, data):
         cdf = [torch.mean((data <= value).float()) for value in x]
-        return torch.tensor(cdf)
+        return torch.tensor(cdf, requires_grad=True)
