@@ -19,9 +19,9 @@ class CRPS(nn.Module):
             self.number,
         )
 
-        cdf_prediction = self._calculate_cdf(x, prediction)
+        cdf_prediction = self._calculate_cdf(x, prediction).requires_grad_()
         cdf_target = self._calculate_cdf(x, target)
-        diff = torch.abs(cdf_prediction.requires_grad_() - cdf_target)
+        diff = torch.abs(cdf_prediction - cdf_target)
 
         return torch.trapz(diff**2, x)
 
