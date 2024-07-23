@@ -27,8 +27,7 @@ class GanFramework(LightningModule):
         self.discriminator = ModelType["discriminator"].value(
             **model_config.discriminator
         )
-        del model_config.discriminator_weight, model_config.discriminator
-        self.generator = ModelType[model_name].value(**model_config)
+        self.generator = ModelType[model_name].value(**model_config.generator)
 
         self.loss_g = LossType[loss_name].value(**loss_config)
         self.loss_d = nn.BCELoss()
@@ -88,7 +87,7 @@ class GanFramework(LightningModule):
             {"generator_loss": loss_g, "discriminator_loss": loss_d},
             on_step=True,
             on_epoch=True,
-            prog_bar=True,
+            prog_bar=False,
             sync_dist=True,
         )
 
@@ -99,11 +98,13 @@ class GanFramework(LightningModule):
 
     def validation_step(self, batch, batch_index: int):
         input, target = batch
-        loss, output = self.general_step(input, target)
+        batch_size = input.shape[0]
 
-        self.log(
-            f"val_loss",
-            loss,
+        loss_g, output = self.calculate_generator_loss(input, target, batch_size)
+        loss_d = self.calculate_discriminator_loss(output, target, batch_size)
+
+        self.log_dict(
+            {"val_loss": loss_g, "val_loss_d": loss_d},
             on_step=False,
             on_epoch=True,
             prog_bar=True,
@@ -119,7 +120,7 @@ class GanFramework(LightningModule):
 
             self.log_tensorboard_image(f"{case}/output", output[0, 0])
 
-        return loss
+        return loss_g
 
     def test_step(self, batch, batch_index: int):
         input, target = batch
