@@ -4,7 +4,7 @@ import torch.nn as nn
 from .swin_transformer import SwinTransformerLayer
 
 
-class SwinUnet(nn.Module):
+class SwinUnetRes(nn.Module):
     """
     3D SwinUnet similar to Pangu-Weather.
     """
@@ -125,6 +125,7 @@ class SwinUnet(nn.Module):
         x = self.layers[3](x)
         x = torch.cat([skip, x], dim=-1)
         x = self.patch_recover(x)
+        x += input_surface
         x = self.activation(x)
         x = self.avg_pool(x)
 
