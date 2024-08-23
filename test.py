@@ -11,7 +11,7 @@ from src.data_loaders import Hdf5Loader
 from src.model_architectures import SimpleFramework, GanFramework
 
 
-def main(path: str) -> None:
+def main(path: str, as_onnx: bool = False) -> None:
     cfg = OmegaConf.load(Path("experiments", path, ".hydra", "config.yaml"))
 
     checkpoints = list(Path("checkpoints", path).glob("*.ckpt"))
@@ -45,6 +45,21 @@ def main(path: str) -> None:
                 input.copy(key, output)
             output["Variables/precipitation"][:] = np.squeeze(model.test_outputs)
 
+    if as_onnx:
+        data_loader.setup("fit")
+        input, _ = next(iter(data_loader.train_dataloader()))
+
+        onnx_file = Path("checkpoints", path, f"{path.replace('/', '_')}.onnx")
+        torch.onnx.export(
+            model.cpu(),
+            input.to("cpu"),
+            onnx_file,
+            export_params=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        )
+
 
 def find_best_model(checkpoints):
     for checkpoint in checkpoints:
@@ -74,6 +89,12 @@ if __name__ == "__main__":
         type=str,
         help="Enter path.",
     )
+    parser.add_argument(
+        "--onnx",
+        type=bool,
+        default=False,
+        help="Whether output as onnx.",
+    )
     args = parser.parse_args()
 
-    main(args.path)
+    main(args.path, args.onnx)
