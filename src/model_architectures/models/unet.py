@@ -94,19 +94,18 @@ class ConvolutionBlock(nn.Module):
     def __init__(self, in_channels, out_channels, **configs):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, **configs)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, **configs)
-        self.relu = nn.ReLU()
-        self.bnorm1 = nn.BatchNorm2d(out_channels)
-        self.bnorm2 = nn.BatchNorm2d(out_channels)
+        self.layers = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, **configs),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(out_channels, out_channels, **configs),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels),
+        )
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.bnorm1(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.bnorm2(x)
+        for layer in self.layers:
+            x = layer(x)
 
         return x
 
@@ -116,7 +115,7 @@ class OutputConvolutionBlock(nn.Module):
         super().__init__()
 
         self.conv = nn.Conv2d(in_channels, out_channels, **configs)
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.bnorm = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
