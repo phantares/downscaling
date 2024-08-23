@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(
         benchmark=True,
         logger=logger,
-        max_epochs=cfg.trainer.max_epochs,
+        **cfg.trainer.max_settings,
         accelerator="gpu",
         devices=[1],
         callbacks=callbacks,
