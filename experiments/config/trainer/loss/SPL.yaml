@@ -1,5 +1,5 @@
-weights_MSE: [20, 2, 5, 10, 30]
-thresholds_MSE: [0, 2, 5, 10, 30]
+weights_MSE: [8, 10, 25, 50, 100]
+thresholds_MSE: [0, 10, 25, 50, 100]
 window_size: 9
 integral_number: 1000
-weights_SP: [1e-1, 1e4]
+weights_SP: [1e-1, 1e5]

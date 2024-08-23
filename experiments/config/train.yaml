@@ -1,8 +1,9 @@
 defaults:
   - dataset: IFS
-  - model: swin_unet_2d 
-  - trainer: swin
+  - model: swin_unet 
+  - trainer: swin_2d 
   - trainer/loss: SPL 
+  - trainer/optimizer: AdamW 
   - _self_
 
 experiment:

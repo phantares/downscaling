@@ -2,6 +2,7 @@ data_config:
   batch_size: 20
   num_workers: 4
 
-max_epochs: 4000
+max_settings:
+  max_steps: 500000
 
 early_stopping: False 
