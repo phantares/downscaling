@@ -2,8 +2,8 @@ import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
 import torch
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning import Trainer
+from lightning.loggers import TensorBoardLogger
 import numpy as np
 import h5py
 

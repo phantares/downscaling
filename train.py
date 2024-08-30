@@ -1,13 +1,13 @@
 from pathlib import Path
 from omegaconf import DictConfig
 import hydra
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
+from lightning import Trainer
+from lightning.pytorch.callbacks import (
     ModelCheckpoint,
     EarlyStopping,
     LearningRateMonitor,
 )
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 
 from src.data_loaders import Hdf5Loader
 from src.model_architectures import SimpleFramework, GanFramework
@@ -49,7 +49,7 @@ def main(cfg: DictConfig) -> None:
     callbacks = [
         ModelCheckpoint(
             dirpath=Path("checkpoints", experiment_name, sub_experiment_name),
-            filename="{epoch}-{val_loss:.6f}",
+            filename="{epoch}-{step}-{val_loss:.6f}",
             monitor="val_loss",
             save_top_k=3,
             save_last=True,

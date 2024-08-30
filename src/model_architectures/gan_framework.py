@@ -1,5 +1,5 @@
-from pytorch_lightning import LightningModule
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning import LightningModule
+from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 import torch.nn as nn
 

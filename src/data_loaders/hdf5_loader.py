@@ -1,4 +1,4 @@
-from pytorch_lightning import LightningDataModule
+from lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from .hdf5_dataset import Hdf5Dataset
 

@@ -1,12 +1,14 @@
-#torch==2.1.1+cu121 torchvision==0.16.1+cu121 torchaudio==2.1.1 -i https://download.pytorch.org/whl/cu121
+#pipenv install torch==2.4.0+cu124 torchvision==0.19.0+cu124 torchaudio==2.4.0 -i https://download.pytorch.org/whl/cu124
 numpy==1.26.4
 tables
 pyyaml
 matplotlib
 pandas
 h5py
-imageio
 timm
 tensorboard
 hydra-core
-pytorch-lightning
+omegaconf
+einops
+onnx
+lightning
