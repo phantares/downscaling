@@ -3,7 +3,7 @@ import numpy as np
 from ..file_readers import Hdf5Reader
 
 
-class Hdf5Dataset(Dataset):
+class PrecipitationDataset(Dataset):
 
     def __init__(
         self,

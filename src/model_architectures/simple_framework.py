@@ -30,11 +30,11 @@ class SimpleFramework(LightningModule):
 
         self.test_outputs = []
 
-    def forward(self, input):
-        return self.model(input)
+    def forward(self, *input):
+        return self.model(*input)
 
-    def general_step(self, input, target):
-        output = self(input)
+    def general_step(self, target, *input):
+        output = self(*input)
         loss = self.loss(output, target)
 
         return loss, output
@@ -63,8 +63,12 @@ class SimpleFramework(LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_index: int):
-        input, target = batch
-        loss, output = self.general_step(input, target)
+        if len(batch) == 2:
+            input, target = batch
+            loss, output = self.general_step(target, input)
+        elif len(batch) == 3:
+            input_surface, input_upper, target = batch
+            loss, output = self.general_step(target, input_surface, input_upper)
 
         self.log(
             f"train_loss",
@@ -76,15 +80,19 @@ class SimpleFramework(LightningModule):
         )
 
         if batch_index == 0:
-            self.log_tensorboard_image(f"train/input", input[0, 0])
+            # self.log_tensorboard_image(f"train/input", input[0, 0])
             self.log_tensorboard_image(f"train/target", target[0, 0])
             self.log_tensorboard_image(f"train/output", output[0, 0])
 
         return loss
 
     def validation_step(self, batch, batch_index: int):
-        input, target = batch
-        loss, output = self.general_step(input, target)
+        if len(batch) == 2:
+            input, target = batch
+            loss, output = self.general_step(target, input)
+        elif len(batch) == 3:
+            input_surface, input_upper, target = batch
+            loss, output = self.general_step(target, input_surface, input_upper)
 
         self.log(
             f"val_loss",
@@ -99,7 +107,7 @@ class SimpleFramework(LightningModule):
             case = f"case_{batch_index}"
 
             if self.current_epoch == 1:
-                self.log_tensorboard_image(f"{case}/input", input[0, 0])
+                # self.log_tensorboard_image(f"{case}/input", input[0, 0])
                 self.log_tensorboard_image(f"{case}/target", target[0, 0])
 
             self.log_tensorboard_image(f"{case}/output", output[0, 0])
@@ -107,8 +115,12 @@ class SimpleFramework(LightningModule):
         return loss
 
     def test_step(self, batch, batch_index: int):
-        input, target = batch
-        loss, output = self.general_step(input, target)
+        if len(batch) == 2:
+            input, target = batch
+            loss, output = self.general_step(target, input)
+        elif len(batch) == 3:
+            input_surface, input_upper, target = batch
+            loss, output = self.general_step(target, input_surface, input_upper)
 
         self.log(
             f"test_loss",

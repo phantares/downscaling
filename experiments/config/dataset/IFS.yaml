@@ -1,4 +1,5 @@
 name: IFS
+dataset: single
 train:
   - /wk1/pei/IFS/2021/IFS_2021_1of2.h5
   - /wk1/pei/IFS/2021/IFS_2021_2of2.h5

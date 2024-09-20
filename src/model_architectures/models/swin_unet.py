@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .swin_transformer import SwinTransformerLayer
 
@@ -23,6 +24,7 @@ class SwinUnet(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.2,
+        interpolation: bool = False,
         **avg_pool_configs,
     ) -> None:
         """
@@ -50,6 +52,9 @@ class SwinUnet(nn.Module):
 
         Z, H, W = map(lambda x, y: x // y, image_shape, patch_shape)
         Z += 1  # surface
+
+        self.shape = image_shape
+        self.interp = interpolation
 
         self.patch_embed = PatchEmbedding(
             patch_shape=patch_shape,
@@ -113,6 +118,11 @@ class SwinUnet(nn.Module):
         Returns:
             x (torch.Tensor): (B, 1, imgH, imgW)
         """
+
+        if self.interp:
+            input_surface = F.interpolate(input_surface, size=self.shape[1:])
+            if input_upper:
+                input_upper = F.interpolate(input_upper, size=self.shape)
 
         x = self.patch_embed(input_surface, input_upper)
         x = self.layers[0](x)

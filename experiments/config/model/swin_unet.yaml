@@ -1,6 +1,6 @@
 framework: simple
 image_shape: [112, 96]
-patch_shape: [1, 2, 2]
+patch_shape: [1, 4, 4]
 window_shape: [1, 7, 6]
 embed_dim: 192
 heads: [2, 6]

@@ -1,6 +1,7 @@
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader
-from .hdf5_dataset import Hdf5Dataset
+from .precipitation_dataset import PrecipitationDataset
+from .dwp_dataset import DwpDataset
 
 
 class Hdf5Loader(LightningDataModule):
@@ -11,9 +12,16 @@ class Hdf5Loader(LightningDataModule):
         self.data_config = data_config
 
     def setup(self, stage: str) -> None:
-        self.train_dataset = Hdf5Dataset(self.dataset.train)
-        self.val_dataset = Hdf5Dataset(self.dataset.val)
-        self.test_dataset = Hdf5Dataset(self.dataset.test)
+        match self.dataset.dataset:
+            case "single":
+                self.train_dataset = PrecipitationDataset(self.dataset.train)
+                self.val_dataset = PrecipitationDataset(self.dataset.val)
+                self.test_dataset = PrecipitationDataset(self.dataset.test)
+
+            case "multi":
+                self.train_dataset = DwpDataset(self.dataset.name, self.dataset.train)
+                self.val_dataset = DwpDataset(self.dataset.name, self.dataset.val)
+                self.test_dataset = DwpDataset(self.dataset.name, self.dataset.test)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, shuffle=True, **self.data_config)
