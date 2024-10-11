@@ -3,7 +3,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 import torch
 from lightning import Trainer
-from lightning.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 import numpy as np
 import h5py
 
