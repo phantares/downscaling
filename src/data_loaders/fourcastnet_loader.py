@@ -22,8 +22,8 @@ class FourcastnetLoader:
         longitude = np.array(self.file["Coordinates/longitude"])
         latmin, latmax, lonmin, lonmax = get_lonlat_index(latitude, longitude)
 
-        INPUT_NUMBERS = self.file["Attributes/inputs_number"][()]
-        datas = [[] for _ in range(INPUT_NUMBERS)]
+        self.INPUT_NUMBERS = self.file["Attributes/inputs_number"][()]
+        datas = [[] for _ in range(self.INPUT_NUMBERS)]
 
         for variable_name in self.file["Variables"].keys():
             indexes = self.file[f"Variables/{variable_name}"].attrs["index"]
@@ -35,12 +35,12 @@ class FourcastnetLoader:
             )
 
             if isinstance(indexes, np.int64):
-                if indexes < INPUT_NUMBERS:
+                if indexes < self.INPUT_NUMBERS:
                     datas[indexes].append(data)
 
             else:
                 for i, index in enumerate(indexes):
-                    if index < INPUT_NUMBERS:
+                    if index < self.INPUT_NUMBERS:
                         datas[index].append(data[i,])
 
         return np.squeeze(datas)
@@ -49,11 +49,15 @@ class FourcastnetLoader:
         data_shape = np.shape(datas)
 
         mean = np.broadcast_to(
-            np.load(str(Path(normalize_path, "mean.npy")))[:, np.newaxis, np.newaxis],
+            np.load(str(Path(normalize_path, "mean.npy")))[
+                : self.INPUT_NUMBERS, np.newaxis, np.newaxis
+            ],
             data_shape,
         )
         std = np.broadcast_to(
-            np.load(str(Path(normalize_path, "std.npy")))[:, np.newaxis, np.newaxis],
+            np.load(str(Path(normalize_path, "std.npy")))[
+                : self.INPUT_NUMBERS, np.newaxis, np.newaxis
+            ],
             data_shape,
         )
 

@@ -2,6 +2,7 @@ from lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from .precipitation_dataset import PrecipitationDataset
 from .dwp_dataset import DwpDataset
+from .pickle_dataset import PickleDataset
 
 
 class Hdf5Loader(LightningDataModule):
@@ -22,6 +23,11 @@ class Hdf5Loader(LightningDataModule):
                 self.train_dataset = DwpDataset(self.dataset.name, self.dataset.train)
                 self.val_dataset = DwpDataset(self.dataset.name, self.dataset.val)
                 self.test_dataset = DwpDataset(self.dataset.name, self.dataset.test)
+
+            case "pickle":
+                self.train_dataset = PickleDataset(self.dataset.train)
+                self.val_dataset = PickleDataset(self.dataset.val)
+                self.test_dataset = PickleDataset(self.dataset.test)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, shuffle=True, **self.data_config)
