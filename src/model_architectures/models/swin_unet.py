@@ -121,8 +121,8 @@ class SwinUnet(nn.Module):
 
         if self.interp:
             input_surface = F.interpolate(input_surface, size=self.shape[1:])
-            if input_upper:
-                input_upper = F.interpolate(input_upper, size=self.shape)
+            if input_upper is not None:
+                input_upper = F.interpolate(input_upper, size=tuple(self.shape))
 
         x = self.patch_embed(input_surface, input_upper)
         x = self.layers[0](x)
@@ -194,7 +194,7 @@ class PatchEmbedding(nn.Module):
         embedding_surface = self.conv_surface(input_surface)  # (B, dim, H, W)
         x = embedding_surface.unsqueeze(-3)  # (B, dim, 1, H, W)
 
-        if input_upper:
+        if input_upper is not None:
             embedding_upper = self.conv_upper(input_upper)  # (B, dim, Z-1, H, W)
             x = torch.cat([embedding_upper, x], -3)  # (B, dim, Z, H, W)
 
