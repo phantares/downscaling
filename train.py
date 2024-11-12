@@ -67,7 +67,6 @@ def main(cfg: DictConfig) -> None:
         logger=logger,
         **cfg.trainer.max_settings,
         accelerator="gpu",
-        devices=[1],
         callbacks=callbacks,
     )
     trainer.fit(model, data_loader)
