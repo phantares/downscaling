@@ -8,6 +8,7 @@ from lightning.pytorch.callbacks import (
     LearningRateMonitor,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
+import torch
 
 from src.data_loaders import Hdf5Loader
 from src.model_architectures import SimpleFramework, GanFramework
@@ -45,6 +46,14 @@ def main(cfg: DictConfig) -> None:
         cfg.trainer.optimizer.config,
         cfg.trainer.optimizer.lr_scheduler,
     )
+
+    if 'pre_ckpt' in cfg.model:
+        pre_weight = torch.load(cfg.model.pre_ckpt)['state_dict']
+        new_weight = {}
+        for layer in pre_weight.keys():
+            new_layer = layer.replace('model.', 'generator.')
+            new_weight[new_layer] = pre_weight[layer]
+        model.load_state_dict(new_weight, strict=False)
 
     callbacks = [
         ModelCheckpoint(
