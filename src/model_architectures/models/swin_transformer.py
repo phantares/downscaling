@@ -26,7 +26,7 @@ class SwinTransformerLayer(nn.Module):
             window_shape (tuple[int, int, int]): Shape of window (wZ, wH, wW).
             dim (int): Number of input channels.
             heads (int): Number of attention heads.
-            roll (bool): Whether to use shifted window attention.
+            depths (list[int]): Number of swin transformer blocks in each layer.
             drop (float, optional): Output dropout rate. Default: 0.0
             attn_drop (float, optional): Attention dropout rate. Default: 0.0
             drop_path (float, optional): Stochastic depth rate. Default: 0.0
