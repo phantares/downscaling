@@ -24,6 +24,7 @@ class SwinUnet(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.2,
+        residual: bool = False,
         interpolation: bool = False,
         **avg_pool_configs,
     ) -> None:
@@ -41,10 +42,15 @@ class SwinUnet(nn.Module):
             drop_rate (float, optional): Dropout rate. Default: 0.0
             attn_drop (float, optional): Attention dropout rate. Default: 0.0
             drop_path_rate (float, optional): Maximum of stochastic depth rate. Default: 0.2
+            residual (bool, optional): Whether to use residual connection. Default: False
+            interpolation (bool, optional): Whether to do interpolation for input. Default: False
             avg_pool_configs: Settings for AvgPool2d.
         """
 
         super().__init__()
+
+        self.interp = interpolation
+        self.res = residual
 
         num_layers = len(depths)
         image_shape = [upper_levels] + image_shape
@@ -54,7 +60,6 @@ class SwinUnet(nn.Module):
         Z += 1  # surface
 
         self.shape = image_shape
-        self.interp = interpolation
 
         self.patch_embed = PatchEmbedding(
             patch_shape=patch_shape,
@@ -102,9 +107,9 @@ class SwinUnet(nn.Module):
             dim=embed_dim * 2,
         )
 
-        self.activation = nn.ReLU()
-
+        self.leaky = nn.LeakyReLU(1)
         self.avg_pool = nn.AvgPool2d(**avg_pool_configs, count_include_pad=False)
+        self.relu = nn.ReLU()
 
     def forward(
         self,
@@ -135,8 +140,13 @@ class SwinUnet(nn.Module):
         x = self.layers[3](x)
         x = torch.cat([skip, x], dim=-1)
         x = self.patch_recover(x)
-        x = self.activation(x)
+        x = self.leaky(x)
         x = self.avg_pool(x)
+
+        if self.res:
+            x += input_surface
+
+        x = self.relu(x)
 
         return x
 

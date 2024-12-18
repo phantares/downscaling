@@ -5,9 +5,17 @@ import math
 
 class UNet(nn.Module):
     def __init__(
-        self, in_channels=1, out_channels=1, features=64, num_layers=3, **configs
-    ):
+        self,
+        in_channels: int = 1,
+        out_channels: int = 1,
+        features: int = 64,
+        num_layers: int = 3,
+        residual: bool = False,
+        **configs
+    ) -> None:
+
         super().__init__()
+        self.res = residual
         self.num_layers = num_layers
 
         self.input = nn.BatchNorm2d(in_channels)
@@ -68,7 +76,8 @@ class UNet(nn.Module):
             ]
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        input = x
         x = self.input(x)
 
         skip_connections = []
@@ -84,14 +93,18 @@ class UNet(nn.Module):
             x = torch.cat([x, skip_connections[layer]], dim=1)
             x = self.decoder[layer](x)
 
-        for layer in self.output:
+        for layer in self.output[:-1]:
             x = layer(x)
+
+        if self.res:
+            x += input
+        x = self.output[-1](x)
 
         return x
 
 
 class ConvolutionBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, **configs):
+    def __init__(self, in_channels: int, out_channels: int, **configs) -> None:
         super().__init__()
 
         self.layers = nn.Sequential(
@@ -103,7 +116,7 @@ class ConvolutionBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         for layer in self.layers:
             x = layer(x)
 
@@ -111,14 +124,14 @@ class ConvolutionBlock(nn.Module):
 
 
 class OutputConvolutionBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, **configs):
+    def __init__(self, in_channels: int, out_channels: int, **configs) -> None:
         super().__init__()
 
         self.conv = nn.Conv2d(in_channels, out_channels, **configs)
         self.relu = nn.ReLU(inplace=True)
         self.bnorm = nn.BatchNorm2d(out_channels)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv(x)
         x = self.relu(x)
         x = self.bnorm(x)
