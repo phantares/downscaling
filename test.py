@@ -35,10 +35,10 @@ def main(path: str, as_onnx: bool = False) -> None:
     )
     trainer.test(model, data_loader)
 
-    input_file = str(cfg.dataset.test[0])
+    input_file = str(cfg.dataset.test[-1])
     if ".pt" in input_file:
         input_file = input_file.replace(
-            "test_data.pt", f"2022/{cfg.dataset.name}_2022_2of2.h5"
+            "test_target.pt", f"2022/{cfg.dataset.name}_2022_2of2.h5"
         )
     output_file = f"{path.replace('/', '_')}_{input_file.split('_')[-2]}_{input_file.split('_')[-1]}"
     output_file = Path(input_file).parent / output_file
