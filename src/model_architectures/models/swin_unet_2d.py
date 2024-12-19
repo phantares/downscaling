@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .swin_transformer_helper import BasicLayer, PatchMerging, UpSample
+from .swin_transformer_2d import BasicLayer, PatchMerging, UpSample
 
 
 class SwinUnet2D(nn.Module):
