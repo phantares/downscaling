@@ -2,27 +2,34 @@ import numpy as np
 from pathlib import Path
 
 from ..file_readers import Hdf5Reader
-from ..utils import get_lonlat_index
+from ..utils import get_lonlat_index, z_normalize, robust_scaling
 
 
 class FourcastnetLoader:
     def __init__(
         self,
         file: str,
-        normalize_path: str = "/wk1/pei/Fourcastnet/2021/statistics/",
+        scaling_path: str = "/wk1/pei/Fourcastnet/2021/statistics/",
+        scaling_method: str = "robust",
     ):
 
         self.file = Hdf5Reader(file).file
+        self.INPUT_NUMBERS = self.file["Attributes/inputs_number"][()] + 1
 
         datas = self._load_data()
-        self.datas = self._normalize_data(datas, normalize_path)
+
+        match scaling_method:
+            case "robust":
+                scaling_function = robust_scaling
+            case "z_norm":
+                scaling_function = z_normalize
+        self.datas = scaling_function(datas, scaling_path, [slice(self.INPUT_NUMBERS)])
 
     def _load_data(self):
         latitude = np.array(self.file["Coordinates/latitude"])
         longitude = np.array(self.file["Coordinates/longitude"])
         latmin, latmax, lonmin, lonmax = get_lonlat_index(latitude, longitude)
 
-        self.INPUT_NUMBERS = self.file["Attributes/inputs_number"][()]
         datas = [[] for _ in range(self.INPUT_NUMBERS)]
 
         for variable_name in self.file["Variables"].keys():
@@ -44,21 +51,3 @@ class FourcastnetLoader:
                         datas[index].append(data[i,])
 
         return np.squeeze(datas)
-
-    def _normalize_data(self, datas: np.array, normalize_path: str):
-        data_shape = np.shape(datas)
-
-        mean = np.broadcast_to(
-            np.load(str(Path(normalize_path, "mean.npy")))[
-                : self.INPUT_NUMBERS, np.newaxis, np.newaxis
-            ],
-            data_shape,
-        )
-        std = np.broadcast_to(
-            np.load(str(Path(normalize_path, "std.npy")))[
-                : self.INPUT_NUMBERS, np.newaxis, np.newaxis
-            ],
-            data_shape,
-        )
-
-        return np.array((datas - mean) / std, dtype=np.float32)

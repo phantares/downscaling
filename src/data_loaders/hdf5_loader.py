@@ -15,9 +15,15 @@ class Hdf5Loader(LightningDataModule):
     def setup(self, stage: str) -> None:
         match self.dataset.dataset:
             case "single":
-                self.train_dataset = PrecipitationDataset(self.dataset.train)
-                self.val_dataset = PrecipitationDataset(self.dataset.val)
-                self.test_dataset = PrecipitationDataset(self.dataset.test)
+                self.train_dataset = PrecipitationDataset(
+                    self.dataset.train, **self.dataset.scaling
+                )
+                self.val_dataset = PrecipitationDataset(
+                    self.dataset.val, **self.dataset.scaling
+                )
+                self.test_dataset = PrecipitationDataset(
+                    self.dataset.test, **self.dataset.scaling
+                )
 
             case "multi":
                 self.train_dataset = DwpDataset(self.dataset.name, self.dataset.train)
@@ -25,9 +31,11 @@ class Hdf5Loader(LightningDataModule):
                 self.test_dataset = DwpDataset(self.dataset.name, self.dataset.test)
 
             case "pickle":
-                self.train_dataset = PickleDataset(self.dataset.name,self.dataset.train)
-                self.val_dataset = PickleDataset(self.dataset.name,self.dataset.val)
-                self.test_dataset = PickleDataset(self.dataset.name,self.dataset.test)
+                self.train_dataset = PickleDataset(
+                    self.dataset.name, self.dataset.train
+                )
+                self.val_dataset = PickleDataset(self.dataset.name, self.dataset.val)
+                self.test_dataset = PickleDataset(self.dataset.name, self.dataset.test)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, shuffle=True, **self.data_config)

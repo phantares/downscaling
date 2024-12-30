@@ -7,3 +7,5 @@ val:
   - /wk1/pei/IFS/2022/IFS_2022_1of2.h5
 test:
   - /wk1/pei/IFS/2022/IFS_2022_2of2.h5
+scaling:
+  scaling_path: False

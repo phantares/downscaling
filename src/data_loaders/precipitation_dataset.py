@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import numpy as np
 from ..file_readers import Hdf5Reader
+from ..utils import robust_scaling, z_normalize
 
 
 class PrecipitationDataset(Dataset):
@@ -12,6 +13,8 @@ class PrecipitationDataset(Dataset):
             "Variables/precipitation",
         ],
         targets_name: list[str] = ["Variables/target"],
+        scaling_path: str | None = None,
+        scaling_method: str = "robust",
     ):
 
         super().__init__()
@@ -22,6 +25,14 @@ class PrecipitationDataset(Dataset):
             self.files.append(reader.file)
 
         self.datas, self.targets = self._stack_data(variables_name, targets_name)
+
+        if scaling_path:
+            match scaling_method:
+                case "robust":
+                    scaling_function = robust_scaling
+                case "z_norm":
+                    scaling_function = z_normalize
+            self.datas = scaling_function(self.datas, scaling_path, [-1])
 
     def __len__(self):
         length = 0
