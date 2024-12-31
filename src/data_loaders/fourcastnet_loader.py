@@ -1,5 +1,4 @@
 import numpy as np
-from pathlib import Path
 
 from ..file_readers import Hdf5Reader
 from ..utils import get_lonlat_index, z_normalize, robust_scaling

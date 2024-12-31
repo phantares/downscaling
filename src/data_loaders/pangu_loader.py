@@ -1,11 +1,10 @@
 import numpy as np
-from pathlib import Path
 
 from ..file_readers import Hdf5Reader
 from ..utils import get_lonlat_index, robust_scaling, z_normalize
 from ..utils.feature_scaler import z_normalize
 
-SURFACE_VARIABLES = ["mslet", "10u", "10v", "2t"]
+SURFACE_VARIABLES = ["mslet", "10u", "10v", "2t", "precip"]
 UPPER_VARIABLES = ["z", "q", "t", "u", "v"]
 
 
@@ -48,21 +47,3 @@ class PanguLoader:
             datas.append(data)
 
         return np.squeeze(datas)
-
-    def _normalize_data(self, datas: np.array, normalize_path: str, layer: str):
-        data_shape = np.shape(datas)
-
-        mean = np.broadcast_to(
-            np.load(str(Path(normalize_path, f"mean_{layer}.npy")))[
-                ..., np.newaxis, np.newaxis
-            ],
-            data_shape,
-        )
-        std = np.broadcast_to(
-            np.load(str(Path(normalize_path, f"std_{layer}.npy")))[
-                ..., np.newaxis, np.newaxis
-            ],
-            data_shape,
-        )
-
-        return np.array((datas - mean) / std, dtype=np.float32)
