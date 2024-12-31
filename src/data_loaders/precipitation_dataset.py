@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from ..file_readers import Hdf5Reader
 from ..utils import robust_scaling, z_normalize
+from constants import M_2_MM
 
 
 class PrecipitationDataset(Dataset):
@@ -32,7 +33,7 @@ class PrecipitationDataset(Dataset):
                     scaling_function = robust_scaling
                 case "z_norm":
                     scaling_function = z_normalize
-            self.datas = scaling_function(self.datas, scaling_path, [-1])
+            self.datas = scaling_function(self.datas / M_2_MM, scaling_path, [-1])
 
     def __len__(self):
         length = 0
