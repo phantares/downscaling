@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from ..file_readers import Hdf5Reader
 from ..utils import robust_scaling, z_normalize
-from constants import M_2_MM
+from .constants import M_2_MM
 
 
 class PrecipitationDataset(Dataset):
