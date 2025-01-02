@@ -16,7 +16,9 @@ def z_normalize(data: np.array, file_path: str, array_slice: list, suffix: str =
     return np.array((data - mean) / std, dtype=np.float32)
 
 
-def robust_scaling(data: np.array, file_path: str, array_slice: list, suffix: str = ""):
+def robust_scaling(
+    data: np.array, file_path: str, array_slice: list = [Ellipsis], suffix: str = ""
+):
     data_shape = np.shape(data)
 
     data_index = tuple([*array_slice, np.newaxis, np.newaxis])

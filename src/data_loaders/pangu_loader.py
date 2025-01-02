@@ -2,7 +2,6 @@ import numpy as np
 
 from ..file_readers import Hdf5Reader
 from ..utils import get_lonlat_index, robust_scaling, z_normalize
-from ..utils.feature_scaler import z_normalize
 
 SURFACE_VARIABLES = ["mslet", "10u", "10v", "2t", "precip"]
 UPPER_VARIABLES = ["z", "q", "t", "u", "v"]
@@ -25,11 +24,9 @@ class PanguLoader:
                 scaling_function = z_normalize
 
         datas = self._load_data("surface")
-        self.datas_surface = scaling_function(datas, scaling_path, [Ellipsis])
+        self.datas_surface = scaling_function(datas, scaling_path)
         datas = self._load_data("upper")
-        self.datas_upper = scaling_function(
-            datas, scaling_path, [Ellipsis, Ellipsis], "_upper"
-        )
+        self.datas_upper = scaling_function(datas, scaling_path, suffix="_upper")
 
     def _load_data(self, layer: str):
         latitude = np.array(self.file["Coordinates/latitude"])
@@ -37,7 +34,7 @@ class PanguLoader:
         latmin, latmax, lonmin, lonmax = get_lonlat_index(latitude, longitude)
 
         datas = []
-        for variable_name in globals()[f"{layer.upper()}_VARIABLES"][:2]:
+        for variable_name in globals()[f"{layer.upper()}_VARIABLES"]:
             data = np.nanmean(
                 np.array(self.file[f"Variables/{variable_name}"])[
                     1:, ..., latmin : latmax - 1 : -1, lonmin : lonmax + 1
