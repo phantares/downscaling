@@ -32,10 +32,14 @@ class Hdf5Loader(LightningDataModule):
 
             case "pickle":
                 self.train_dataset = PickleDataset(
-                    self.dataset.name, self.dataset.train
+                    self.dataset.name, self.dataset.train, self.dataset.include_rain
                 )
-                self.val_dataset = PickleDataset(self.dataset.name, self.dataset.val)
-                self.test_dataset = PickleDataset(self.dataset.name, self.dataset.test)
+                self.val_dataset = PickleDataset(
+                    self.dataset.name, self.dataset.val, self.dataset.include_rain
+                )
+                self.test_dataset = PickleDataset(
+                    self.dataset.name, self.dataset.test, self.dataset.include_rain
+                )
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, shuffle=True, **self.data_config)

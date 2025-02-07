@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 
 class PickleDataset(Dataset):
 
-    def __init__(self, model: str, files: str):
+    def __init__(self, model: str, files: str, include_rain: bool = False):
 
         super().__init__()
 
@@ -15,10 +15,22 @@ class PickleDataset(Dataset):
                 self.data = torch.load(files[0])
                 self.target = torch.load(files[1])
 
+                if not include_rain:
+                    self.data = self.data[
+                        :,
+                        :-1,
+                    ]
+
             case "Pangu":
                 self.surface = torch.load(files[0])
                 self.upper = torch.load(files[1])
                 self.target = torch.load(files[2])
+
+                if not include_rain:
+                    self.surface = self.surface[
+                        :,
+                        :-1,
+                    ]
 
     def __len__(self):
         match self.model:
