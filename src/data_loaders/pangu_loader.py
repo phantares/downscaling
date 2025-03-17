@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..file_readers import Hdf5Reader
-from ..utils import get_lonlat_index, robust_scaling, z_normalize
+from ..utils import get_lonlat_index, RobustScaler, ZNormalizer, LogNormalizer
 from .constants import HOURS_PER_STEP
 
 SURFACE_VARIABLES = ["mslet", "10u", "10v", "2t", "precip"]
@@ -13,22 +13,27 @@ class PanguLoader:
         self,
         file: str,
         accumulated_hour: int = 24,
-        scaling_path: str = "/wk1/pei/Pangu/2021/statistics/",
-        scaling_method: str = "robust",
+        scaling_method: str | None = None,
+        scaling_path: str = "",
     ):
 
         self.file = Hdf5Reader(file).file
 
-        match scaling_method:
-            case "robust":
-                scaling_function = robust_scaling
-            case "z_norm":
-                scaling_function = z_normalize
+        if scaling_method:
+            match scaling_method:
+                case "robust":
+                    scaling_function = RobustScaler
+                case "z_norm":
+                    scaling_function = ZNormalizer
+                case "log_norm":
+                    scaling_function = LogNormalizer
 
         datas = self._load_data("surface", accumulated_hour)
-        self.datas_surface = scaling_function(datas, scaling_path)
+        self.datas_surface = scaling_function(datas, scaling_path).standardize()
         datas = self._load_data("upper", accumulated_hour)
-        self.datas_upper = scaling_function(datas, scaling_path, suffix="_upper")
+        self.datas_upper = scaling_function(
+            datas, scaling_path, suffix="_upper"
+        ).standardize()
 
     def _load_data(self, layer: str, accumulated_hour: int = 24):
         latitude = np.array(self.file["Coordinates/latitude"])
