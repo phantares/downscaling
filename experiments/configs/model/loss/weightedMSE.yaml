@@ -1,0 +1,4 @@
+name: weightedMSE
+config:
+  weights: [20, 2, 5, 10, 30]
+  thresholds: [0, 2, 5, 10, 30]

@@ -3,37 +3,30 @@ from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 import torch.nn as nn
 
-from .models import ModelType
-from .loss_functions import LossType
-from ..utils import get_scheduler_with_warmup, MapPlotter
+from ..architectures import ModelType
+from ..loss_functions import LossType
+from ...utils import get_scheduler_with_warmup, MapPlotter
 
 
 class GanFramework(LightningModule):
 
-    def __init__(
-        self,
-        model_name,
-        model_config,
-        loss_name,
-        loss_config,
-        optimizer_name,
-        optimizer_config,
-        lr_scheduler: None,
-    ):
+    def __init__(self, model_configs) -> None:
         super().__init__()
         self.save_hyperparameters()
 
-        self.weight = model_config.discriminator_weight
-        self.discriminator = ModelType["discriminator"].value(
-            **model_config.discriminator
+        self.weight = model_configs.framework.discriminator.weight
+        self.discriminator = ModelType[
+            model_configs.framework.discriminator.name
+        ].value(**model_configs.framework.discriminator.config)
+        self.generator = ModelType[model_configs.architecture.name].value(
+            **model_configs.architecture.config
         )
-        self.generator = ModelType[model_name].value(**model_config.generator)
 
-        self.loss_g = LossType[loss_name].value(**loss_config)
+        self.loss_g = LossType[model_configs.loss.name].value(
+            **model_configs.loss.config
+        )
         self.loss_d = nn.BCELoss()
-        self.optimizer = optimizer_name
-        self.optimizer_config = optimizer_config
-        self.lr_scheduler = lr_scheduler
+        self.optimizer = model_configs.optimizer
 
         self.automatic_optimization = False
         self.test_outputs = []
@@ -48,18 +41,18 @@ class GanFramework(LightningModule):
         return loss, output
 
     def configure_optimizers(self):
-        optimizer_g = getattr(torch.optim, self.optimizer)(
-            self.generator.parameters(), **self.optimizer_config
+        optimizer_g = getattr(torch.optim, self.optimizer.name)(
+            self.generator.parameters(), **self.optimizer.config
         )
-        optimizer_d = getattr(torch.optim, self.optimizer)(
-            self.discriminator.parameters(), **self.optimizer_config
+        optimizer_d = getattr(torch.optim, self.optimizer.name)(
+            self.discriminator.parameters(), **self.optimizer.config
         )
 
-        if self.lr_scheduler:
+        if "lr_scheduler" in self.optimizer:
             get_scheduler_with_warmup(
                 optimizer_g,
                 total_steps=int(self.trainer.estimated_stepping_batches),
-                **self.lr_scheduler,
+                **self.optimizer.lr_scheduler,
             )
 
         return optimizer_g, optimizer_d
