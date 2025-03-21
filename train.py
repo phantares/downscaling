@@ -1,83 +1,34 @@
 from pathlib import Path
 from omegaconf import DictConfig
 import hydra
-from lightning import Trainer
-from lightning.pytorch.callbacks import (
-    ModelCheckpoint,
-    EarlyStopping,
-    LearningRateMonitor,
-)
 from lightning.pytorch.loggers import TensorBoardLogger
-import torch
 
-from src.data_loaders import Hdf5Loader
-from src.model_architectures import SimpleFramework, GanFramework
+from src.data_loaders import DataManager
+from src.models import ModelBuilder
+from src.trainers import TrainerBuilder
+from src.utils import add_checkpoint_save_path
 
 
-@hydra.main(version_base=None, config_path="experiments/config", config_name="train")
+@hydra.main(version_base=None, config_path="experiments/configs", config_name="train")
 def main(cfg: DictConfig) -> None:
     hydra_config = hydra.core.hydra_config.HydraConfig.get()
 
     experiment_name = cfg.experiment.name
     sub_experiment_name = Path(hydra_config.runtime.output_dir).name
-    print(f"Training sub-experiment: {sub_experiment_name}")
+    cfg = add_checkpoint_save_path(f"{experiment_name}/{sub_experiment_name}", cfg)
+    print(f"Training experiment: {experiment_name}/{sub_experiment_name}")
+
+    data_loader = DataManager(cfg.data)
+
+    model = ModelBuilder(cfg.model).get_model()
 
     logger = TensorBoardLogger(
         save_dir=Path("logs", experiment_name),
         name=sub_experiment_name,
     )
 
-    data_loader = Hdf5Loader(cfg.dataset, **cfg.trainer.data_config)
+    trainer = TrainerBuilder(cfg.trainer.fit, logger).get_trainer()
 
-    framework = cfg.model.framework
-    del cfg.model.framework
-    match framework:
-        case "simple":
-            framework = SimpleFramework
-        case "gan":
-            framework = GanFramework
-
-    model = framework(
-        hydra_config.runtime.choices.model.removesuffix("_gan"),
-        cfg.model,
-        hydra_config.runtime.choices["trainer/loss"],
-        cfg.trainer.loss,
-        hydra_config.runtime.choices["trainer/optimizer"],
-        cfg.trainer.optimizer.config,
-        cfg.trainer.optimizer.lr_scheduler,
-    )
-
-    if 'pre_ckpt' in cfg.model:
-        pre_weight = torch.load(cfg.model.pre_ckpt)['state_dict']
-        new_weight = {}
-        for layer in pre_weight.keys():
-            new_layer = layer.replace('model.', 'generator.')
-            new_weight[new_layer] = pre_weight[layer]
-        model.load_state_dict(new_weight, strict=False)
-
-    callbacks = [
-        ModelCheckpoint(
-            dirpath=Path("checkpoints", experiment_name, sub_experiment_name),
-            filename="{epoch}-{step}-{val_loss:.6f}",
-            monitor="val_loss",
-            save_top_k=3,
-            save_last=True,
-            mode="min",
-        )
-    ]
-
-    callbacks.append(LearningRateMonitor(logging_interval="step"))
-
-    if cfg.trainer.early_stopping:
-        callbacks.append(EarlyStopping(**cfg.trainer.early_stopping))
-
-    trainer = Trainer(
-        benchmark=True,
-        logger=logger,
-        **cfg.trainer.max_settings,
-        accelerator="gpu",
-        callbacks=callbacks,
-    )
     trainer.fit(model, data_loader)
 
 
