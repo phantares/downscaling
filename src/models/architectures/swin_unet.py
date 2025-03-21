@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .swin_transformer import SwinTransformerLayer
+from ...utils import ScalingMethod
 
 
 class SwinUnet(nn.Module):
@@ -26,7 +27,7 @@ class SwinUnet(nn.Module):
         drop_path_rate: float = 0.2,
         residual: bool = False,
         interpolation: bool = False,
-        **avg_pool_configs,
+        **configs,
     ) -> None:
         """
         Args:
@@ -44,13 +45,18 @@ class SwinUnet(nn.Module):
             drop_path_rate (float, optional): Maximum of stochastic depth rate. Default: 0.2
             residual (bool, optional): Whether to use residual connection. Default: False
             interpolation (bool, optional): Whether to do interpolation for input. Default: False
-            avg_pool_configs: Settings for AvgPool2d.
+            configs: Other settings.
         """
 
         super().__init__()
 
         self.interp = interpolation
         self.res = residual
+
+        self.scaling = False
+        if "scaling" in configs:
+            self.scaling = True
+            self.scaling_configs = configs["scaling"]
 
         num_layers = len(depths)
         image_shape = [upper_levels] + image_shape
@@ -108,7 +114,12 @@ class SwinUnet(nn.Module):
         )
 
         self.leaky = nn.LeakyReLU(1)
-        self.avg_pool = nn.AvgPool2d(**avg_pool_configs, count_include_pad=False)
+
+        self.avg = False
+        if "avg" in configs:
+            self.avg = True
+            self.avg_pool = nn.AvgPool2d(**configs["avg"], count_include_pad=False)
+
         self.relu = nn.ReLU()
 
     def forward(
@@ -129,6 +140,17 @@ class SwinUnet(nn.Module):
             if input_upper is not None:
                 input_upper = F.interpolate(input_upper, size=tuple(self.shape))
 
+        if self.scaling:
+            scaling_method = ScalingMethod[self.scaling_configs["method"]]
+            input_surface = scaling_method.value(
+                input_surface, **self.scaling_configs["config"]
+            ).standardize()
+
+            if input_upper is not None:
+                input_upper = scaling_method.value(
+                    input_upper, **self.scaling_configs["config"]
+                ).standardize()
+
         x = self.patch_embed(input_surface, input_upper)
         x = self.layers[0](x)
         skip = x
@@ -141,10 +163,15 @@ class SwinUnet(nn.Module):
         x = torch.cat([skip, x], dim=-1)
         x = self.patch_recover(x)
         x = self.leaky(x)
-        x = self.avg_pool(x)
+
+        if self.avg:
+            x = self.avg_pool(x)
 
         if self.res:
             x += input_surface
+
+        if self.scaling:
+            x = scaling_method.value(x, **self.scaling_configs["config"]).inverse()
 
         x = self.relu(x)
 
