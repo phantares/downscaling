@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..file_readers import Hdf5Reader
-from ..utils import get_lonlat_index, RobustScaler, ZNormalizer, LogNormalizer
-from .constants import HOURS_PER_STEP
+from ...file_readers import Hdf5Reader
+from ...utils import get_lonlat_index
+from ..constants import HOURS_PER_STEP
 
 
 class FourcastnetLoader:
@@ -10,26 +10,15 @@ class FourcastnetLoader:
         self,
         file: str,
         accumulated_hour: int = 24,
-        scaling_method: str | None = None,
-        scaling_path: str = "",
     ):
 
         self.file = Hdf5Reader(file).file
         self.INPUT_NUMBERS = self.file["Attributes/inputs_number"][()] + 1
 
-        datas = self._load_data(accumulated_hour)
+        self.datas = self._load_data(accumulated_hour)
 
-        if scaling_method:
-            match scaling_method:
-                case "robust":
-                    scaling_function = RobustScaler
-                case "z_norm":
-                    scaling_function = ZNormalizer
-                case "log_norm":
-                    scaling_function = LogNormalizer
-        self.datas = scaling_function(
-            datas, scaling_path, [slice(self.INPUT_NUMBERS)]
-        ).standardize()
+    def load_data(self):
+        return self.datas
 
     def _load_data(self, accumulated_hour: int = 24):
         latitude = np.array(self.file["Coordinates/latitude"])
