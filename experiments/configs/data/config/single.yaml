@@ -1,0 +1,14 @@
+train:
+  batch_size: 20
+  num_workers: 4
+  shuffle: True
+
+val:
+  batch_size: 20
+  num_workers: 4
+  shuffle: False 
+
+test:
+  batch_size: 1
+  num_workers: 4
+  shuffle: False 
