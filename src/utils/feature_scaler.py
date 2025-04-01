@@ -31,7 +31,7 @@ class RobustScaler:
     def __init__(
         self, data: torch.Tensor, file_path: str, array_slice: list, suffix: str = ""
     ) -> None:
-        self.data = data
+
         data_shape = data.shape
         data_index = tuple([*array_slice, None, None])
 
@@ -43,24 +43,31 @@ class RobustScaler:
             np.load(str(Path(file_path, f"iqr{suffix}.npy")))[data_index]
         ).expand(data_shape)
 
-    def standardize(self) -> torch.Tensor:
-        return (self.data - self.med) / self.iqr
+    def standardize(self, data) -> torch.Tensor:
+        return (data - self.med) / self.iqr
 
-    def inverse(self) -> torch.Tensor:
-        return self.data * self.iqr + self.med
+    def inverse(self, data) -> torch.Tensor:
+        return data * self.iqr + self.med
 
 
 class LogNormalizer:
-    def __init__(self, data: torch.Tensor, eps: float = 1e5) -> None:
-        self.data = data
+    def __init__(self, eps: float = 1e5) -> None:
         self.eps = eps
 
-    def standardize(self) -> torch.Tensor:
-        return torch.log(self.data * self.eps + 1)
+    def standardize(self, data: torch.Tensor) -> torch.Tensor:
+        return torch.log(data * self.eps + 1)
 
-    def inverse(self) -> torch.Tensor:
-        return (torch.exp(self.data) - 1) / self.eps
+    def inverse(self, data: torch.Tensor) -> torch.Tensor:
+        return (torch.exp(data) - 1) / self.eps
 
 
 class ScalingMethod(Enum):
     log_norm = LogNormalizer
+
+
+def set_scaling(scaling_configs):
+    rain_scaling = ScalingMethod[scaling_configs["rain"].method].value(
+        **scaling_configs["rain"].config
+    )
+
+    return rain_scaling
