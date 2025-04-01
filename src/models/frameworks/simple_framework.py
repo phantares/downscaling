@@ -4,7 +4,7 @@ import torch
 
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, MapPlotter
+from ...utils import get_scheduler_with_warmup, MapPlotter, set_scaling
 
 
 class SimpleFramework(LightningModule):
@@ -12,6 +12,12 @@ class SimpleFramework(LightningModule):
     def __init__(self, model_configs) -> None:
         super().__init__()
         self.save_hyperparameters()
+
+        self.scaling = False
+        if "scaling" in model_configs.framework.config:
+            if model_configs.framework.config.scaling.execute:
+                self.scaling = True
+                self.rain_scaling = set_scaling(model_configs.framework.config.scaling)
 
         self.model = ModelType[model_configs.architecture.name].value(
             **model_configs.architecture.config
@@ -24,9 +30,17 @@ class SimpleFramework(LightningModule):
     def forward(self, *input):
         return self.model(*input)
 
-    def general_step(self, target, *input):
-        output = self(*input)
+    def general_step(self, target, *inputs):
+        if self.scaling:
+            inputs = list(inputs)
+            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
+            target = self.rain_scaling.standardize(target)
+
+        output = self(*inputs)
         loss = self.loss(output, target)
+
+        if self.scaling:
+            output = self.rain_scaling.inverse(output)
 
         return loss, output
 
