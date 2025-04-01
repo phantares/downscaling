@@ -1,1 +1,11 @@
 name: simple
+config:
+  scaling:
+    execute: True
+    rain:
+      method: log_norm
+      config:
+        eps: 1e2
+    #other:
+    #  method: robust
+    #  config: {}

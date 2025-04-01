@@ -26,7 +26,7 @@ class SwinUnet(nn.Module):
         drop_path_rate: float = 0.2,
         residual: bool = False,
         interpolation: bool = False,
-        **avg_pool_configs,
+        **configs,
     ) -> None:
         """
         Args:
@@ -44,13 +44,18 @@ class SwinUnet(nn.Module):
             drop_path_rate (float, optional): Maximum of stochastic depth rate. Default: 0.2
             residual (bool, optional): Whether to use residual connection. Default: False
             interpolation (bool, optional): Whether to do interpolation for input. Default: False
-            avg_pool_configs: Settings for AvgPool2d.
+            configs: Other settings.
         """
 
         super().__init__()
 
         self.interp = interpolation
         self.res = residual
+
+        self.scaling = False
+        if "scaling" in configs:
+            self.scaling = True
+            self.scaling_configs = configs["scaling"]
 
         num_layers = len(depths)
         image_shape = [upper_levels] + image_shape
@@ -107,8 +112,6 @@ class SwinUnet(nn.Module):
             dim=embed_dim * 2,
         )
 
-        self.leaky = nn.LeakyReLU(1)
-        self.avg_pool = nn.AvgPool2d(**avg_pool_configs, count_include_pad=False)
         self.relu = nn.ReLU()
 
     def forward(
@@ -140,8 +143,6 @@ class SwinUnet(nn.Module):
         x = self.layers[3](x)
         x = torch.cat([skip, x], dim=-1)
         x = self.patch_recover(x)
-        x = self.leaky(x)
-        x = self.avg_pool(x)
 
         if self.res:
             x += input_surface

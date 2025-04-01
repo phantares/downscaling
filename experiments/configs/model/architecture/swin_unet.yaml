@@ -8,7 +8,7 @@ config:
   depths: [2, 6]
   surface_channels: 1
   drop_rate: 0.2
-  # average pooling
-  kernel_size: 3
-  stride: 1
-  padding: 1
+  scaling:
+    method: log_norm
+    config:
+      eps: 1e2
