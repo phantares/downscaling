@@ -38,6 +38,7 @@ class FourcastnetLoader:
             ]
 
             if variable_name == "precip":
+                data[data < 0] = 0
                 data_function = np.nansum
             else:
                 data_function = np.nanmean
