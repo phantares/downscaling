@@ -5,10 +5,14 @@ from .frameworks import FrameworkType
 class ModelBuilder:
 
     def __init__(self, model_configs) -> None:
-        self.model = FrameworkType[model_configs.framework.name].value(model_configs)
+        self.framework = FrameworkType[model_configs.framework.name].value
+        self.model = self.framework(model_configs)
 
         if "pre_ckpt" in model_configs.architecture:
             self._load_pretrained_weight(model_configs.architecture.pre_ckpt)
+
+    def get_framework(self):
+        return self.framework
 
     def get_model(self):
         return self.model

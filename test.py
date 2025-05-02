@@ -2,13 +2,13 @@ import argparse
 from pathlib import Path
 from omegaconf import OmegaConf
 import torch
-from lightning import Trainer
 from lightning.pytorch.loggers import TensorBoardLogger
 import numpy as np
 import h5py
 
-from src.data_loaders import Hdf5Loader
-from src.model_architectures import SimpleFramework, GanFramework
+from src.data_loaders import DataManager
+from src.models import ModelBuilder
+from src.trainers import TrainerBuilder
 
 
 def main(path: str, as_onnx: bool = False) -> None:
@@ -17,29 +17,19 @@ def main(path: str, as_onnx: bool = False) -> None:
     checkpoints = list(Path("checkpoints", path).glob("*.ckpt"))
     best_model = find_best_model(checkpoints)
 
-    framework = cfg.model.framework
-    match framework:
-        case "simple":
-            framework = SimpleFramework
-        case "gan":
-            framework = GanFramework
+    framework = ModelBuilder(cfg.model).get_framework()
     model = framework.load_from_checkpoint(best_model)
 
-    data_loader = Hdf5Loader(cfg.dataset, **cfg.trainer.data_config)
+    data_loader = DataManager(cfg.data)
 
     logger = TensorBoardLogger(save_dir=Path("logs", path), name="", version="test")
 
-    trainer = Trainer(
-        logger=logger,
-        accelerator="cpu",
-    )
+    trainer = TrainerBuilder(cfg.trainer.test, logger).get_trainer()
     trainer.test(model, data_loader)
 
-    input_file = str(cfg.dataset.test[-1])
+    input_file = str(cfg.data.dataset.files.test[-1])
     if ".pt" in input_file:
-        input_file = input_file.replace(
-            "test_target.pt", f"2022/{cfg.dataset.name}_2022_2of2.h5"
-        )
+        input_file = str(cfg.data.dataset.sample)
     output_file = f"{path.replace('/', '_')}_{input_file.split('_')[-2]}_{input_file.split('_')[-1]}"
     output_file = Path(input_file).parent / output_file
 

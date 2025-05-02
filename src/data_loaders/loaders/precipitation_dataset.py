@@ -7,7 +7,7 @@ class PrecipitationDataset(Dataset):
 
     def __init__(
         self,
-        files: str,
+        files: list[str],
         variables_name: list[str] = [
             "Variables/precipitation",
         ],

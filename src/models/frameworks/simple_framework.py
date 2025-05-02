@@ -1,10 +1,9 @@
 from lightning import LightningModule
-from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, MapPlotter, set_scaling
+from ...utils import get_scheduler_with_warmup, set_scaling
 
 
 class SimpleFramework(LightningModule):
@@ -27,8 +26,12 @@ class SimpleFramework(LightningModule):
 
         self.test_outputs = []
 
-    def forward(self, *input):
-        return self.model(*input)
+    def forward(self, *inputs):
+        if self.scaling:
+            inputs = list(inputs)
+            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
+
+        return self.model(*inputs)
 
     def general_step(self, target, *inputs):
         if self.scaling:
@@ -84,11 +87,6 @@ class SimpleFramework(LightningModule):
             sync_dist=True,
         )
 
-        if batch_index == 0:
-            # self.log_tensorboard_image(f"train/input", input[0, 0])
-            self.log_tensorboard_image(f"train/target", target[0, 0])
-            self.log_tensorboard_image(f"train/output", output[0, 0])
-
         return loss
 
     def validation_step(self, batch, batch_index: int):
@@ -107,15 +105,6 @@ class SimpleFramework(LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
-
-        if batch_index in [1, 13, 16, 19]:
-            case = f"case_{batch_index}"
-
-            if self.current_epoch == 1:
-                # self.log_tensorboard_image(f"{case}/input", input[0, 0])
-                self.log_tensorboard_image(f"{case}/target", target[0, 0])
-
-            self.log_tensorboard_image(f"{case}/output", output[0, 0])
 
         return loss
 
@@ -139,21 +128,3 @@ class SimpleFramework(LightningModule):
         self.test_outputs.append(output.numpy())
 
         return loss
-
-    def log_tensorboard_image(self, title: str, data):
-        logger = self.get_tensorboard_logger()
-
-        plotter = MapPlotter(data)
-        logger.add_figure(
-            title,
-            plotter.plot_map(),
-            global_step=self.global_step,
-        )
-
-    def get_tensorboard_logger(self):
-        for logger in self.trainer.loggers:
-            if isinstance(logger, TensorBoardLogger):
-                tensorboard_logger = logger.experiment
-                return tensorboard_logger
-
-        raise ValueError("TensorboardLogger not found in trainer")
