@@ -29,9 +29,6 @@ class FigureLogger(Callback):
                 input_surface, input_upper, target = batch
                 output = pl_module(input_surface, input_upper)
 
-            if pl_module.scaling:
-                output = pl_module.rain_scaling.inverse(output)
-
         self.log_tensorboard_image(trainer, f"train/target", target[0, 0])
         self.log_tensorboard_image(trainer, f"train/output", output[0, 0])
 
@@ -48,9 +45,6 @@ class FigureLogger(Callback):
             elif len(batch) == 3:
                 input_surface, input_upper, target = batch
                 output = pl_module(input_surface, input_upper)
-
-            if pl_module.scaling:
-                output = pl_module.rain_scaling.inverse(output)
 
         case = f"case_{batch_index}"
         if trainer.current_epoch == self.val_epoch:

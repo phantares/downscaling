@@ -31,7 +31,12 @@ class SimpleFramework(LightningModule):
             inputs = list(inputs)
             inputs[-1] = self.rain_scaling.standardize(inputs[-1])
 
-        return self.model(*inputs)
+        output = self.model(*inputs)
+
+        if self.scaling:
+            output = self.rain_scaling.inverse(output)
+
+        return output
 
     def general_step(self, target, *inputs):
         if self.scaling:
@@ -41,9 +46,6 @@ class SimpleFramework(LightningModule):
 
         output = self(*inputs)
         loss = self.loss(output, target)
-
-        if self.scaling:
-            output = self.rain_scaling.inverse(output)
 
         return loss, output
 
