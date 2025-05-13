@@ -22,15 +22,14 @@ class FigureLogger(Callback):
         with torch.no_grad():
             batch = self.train_batch
 
-            if len(batch) == 2:
-                input, target = batch
-                output = pl_module(input)
-            elif len(batch) == 3:
-                input_surface, input_upper, target = batch
-                output = pl_module(input_surface, input_upper)
+            *inputs, target = batch
+            output = pl_module(*inputs)
 
-        self.log_tensorboard_image(trainer, f"train/target", target[0, 0])
-        self.log_tensorboard_image(trainer, f"train/output", output[0, 0])
+            if pl_module.scaling:
+                output = pl_module.rain_scaling.inverse(output)
+
+            self.log_tensorboard_image(trainer, f"train/target", target[0, 0])
+            self.log_tensorboard_image(trainer, f"train/output", output[0, 0])
 
         self.train_batch = None
 
@@ -39,17 +38,16 @@ class FigureLogger(Callback):
             return
 
         with torch.no_grad():
-            if len(batch) == 2:
-                input, target = batch
-                output = pl_module(input)
-            elif len(batch) == 3:
-                input_surface, input_upper, target = batch
-                output = pl_module(input_surface, input_upper)
+            *inputs, target = batch
+            output = pl_module(*inputs)
 
-        case = f"case_{batch_index}"
-        if trainer.current_epoch == self.val_epoch:
-            self.log_tensorboard_image(trainer, f"{case}/target", target[0, 0])
-        self.log_tensorboard_image(trainer, f"{case}/output", output[0, 0])
+            if pl_module.scaling:
+                output = pl_module.rain_scaling.inverse(output)
+
+            case = f"case_{batch_index}"
+            if trainer.current_epoch == self.val_epoch:
+                self.log_tensorboard_image(trainer, f"{case}/target", target[0, 0])
+            self.log_tensorboard_image(trainer, f"{case}/output", output[0, 0])
 
     def log_tensorboard_image(self, trainer, title: str, data):
         logger = self.get_tensorboard_logger(trainer)

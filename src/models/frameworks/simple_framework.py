@@ -27,6 +27,7 @@ class SimpleFramework(LightningModule):
         self.test_outputs = []
 
     def forward(self, *inputs):
+<<<<<<< Updated upstream
         if self.scaling:
             inputs = list(inputs)
             inputs[-1] = self.rain_scaling.standardize(inputs[-1])
@@ -39,9 +40,18 @@ class SimpleFramework(LightningModule):
         return output
 
     def general_step(self, target, *inputs):
+=======
+>>>>>>> Stashed changes
         if self.scaling:
             inputs = list(inputs)
             inputs[-1] = self.rain_scaling.standardize(inputs[-1])
+
+        output = self.model(*inputs)
+
+        return output
+
+    def general_step(self, target, *inputs):
+        if self.scaling:
             target = self.rain_scaling.standardize(target)
 
         output = self(*inputs)
@@ -73,12 +83,8 @@ class SimpleFramework(LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_index: int):
-        if len(batch) == 2:
-            input, target = batch
-            loss, output = self.general_step(target, input)
-        elif len(batch) == 3:
-            input_surface, input_upper, target = batch
-            loss, output = self.general_step(target, input_surface, input_upper)
+        *inputs, target = batch
+        loss, output = self.general_step(target, *inputs)
 
         self.log(
             f"train_loss",
@@ -92,12 +98,8 @@ class SimpleFramework(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_index: int):
-        if len(batch) == 2:
-            input, target = batch
-            loss, output = self.general_step(target, input)
-        elif len(batch) == 3:
-            input_surface, input_upper, target = batch
-            loss, output = self.general_step(target, input_surface, input_upper)
+        *inputs, target = batch
+        loss, output = self.general_step(target, *inputs)
 
         self.log(
             f"val_loss",
@@ -111,12 +113,8 @@ class SimpleFramework(LightningModule):
         return loss
 
     def test_step(self, batch, batch_index: int):
-        if len(batch) == 2:
-            input, target = batch
-            loss, output = self.general_step(target, input)
-        elif len(batch) == 3:
-            input_surface, input_upper, target = batch
-            loss, output = self.general_step(target, input_surface, input_upper)
+        *inputs, target = batch
+        loss, output = self.general_step(target, *inputs)
 
         self.log(
             f"test_loss",
@@ -126,6 +124,9 @@ class SimpleFramework(LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
+
+        if self.scaling:
+            output = self.rain_scaling.inverse(output)
 
         self.test_outputs.append(output.numpy())
 
