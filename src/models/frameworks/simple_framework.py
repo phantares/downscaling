@@ -27,21 +27,6 @@ class SimpleFramework(LightningModule):
         self.test_outputs = []
 
     def forward(self, *inputs):
-<<<<<<< Updated upstream
-        if self.scaling:
-            inputs = list(inputs)
-            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
-
-        output = self.model(*inputs)
-
-        if self.scaling:
-            output = self.rain_scaling.inverse(output)
-
-        return output
-
-    def general_step(self, target, *inputs):
-=======
->>>>>>> Stashed changes
         if self.scaling:
             inputs = list(inputs)
             inputs[-1] = self.rain_scaling.standardize(inputs[-1])
