@@ -25,10 +25,7 @@ omegaconf = "==2.3.0"
 einops = "==0.8.0"
 onnx = "==1.17.0"
 lightning = "==2.4.0"
-<<<<<<< Updated upstream
-=======
 torchmetrics = "*"
->>>>>>> Stashed changes
 
 [dev-packages]
 
