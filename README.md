@@ -3,8 +3,8 @@
 # Precipitation downscaling
 
 [![Python](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.4.0-red)](https://pytorch.org/)
-[![PyTorch Lightning](https://img.shields.io/badge/PyTorch--lightning-2.4.0-purple)](https://lightning.ai/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.7.0-red)](https://pytorch.org/)
+[![PyTorch Lightning](https://img.shields.io/badge/PyTorch--lightning-2.5.1-purple)](https://lightning.ai/)
 
 </div>
 
