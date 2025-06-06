@@ -1,0 +1,12 @@
+name: classf
+config:
+  class_weight: 1
+  scaling:
+    execute: True
+    rain:
+      method: linear
+      config:
+        max_val: 200
+    #other:
+    #  method: robust
+    #  config: {}
