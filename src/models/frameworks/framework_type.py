@@ -8,4 +8,4 @@ from .class_framework import ClassFramework
 class FrameworkType(Enum):
     simple = SimpleFramework
     gan = GanFramework
-    sclass = ClassFramework
+    classf = ClassFramework
