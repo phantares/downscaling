@@ -57,7 +57,7 @@ def main(path: str, as_onnx: bool = False) -> None:
 
 def find_best_model(checkpoints):
     for checkpoint in checkpoints:
-        callbacks = torch.load(checkpoint)["callbacks"]
+        callbacks = torch.load(checkpoint, weights_only=False)["callbacks"]
 
         for key in callbacks.keys():
             if "ModelCheckpoint" in key:
