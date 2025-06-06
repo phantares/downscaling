@@ -1,1 +1,1 @@
-from .figure_logger import FigureLogger
+from .figure_logger_type import FigureLoggerType

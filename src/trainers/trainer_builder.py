@@ -5,7 +5,7 @@ from lightning.pytorch.callbacks import (
     LearningRateMonitor,
 )
 
-from .callbacks import FigureLogger
+from .callbacks import FigureLoggerType
 
 
 class TrainerBuilder:
@@ -26,7 +26,7 @@ class TrainerBuilder:
     def _load_callbacks(self, callback_configs):
         callbacks = []
 
-        callbacks.append(FigureLogger())
+        callbacks.append(FigureLoggerType[callback_configs.figure]).value()
 
         if "checkpoint" in callback_configs:
             callbacks.append(ModelCheckpoint(**callback_configs.checkpoint))
@@ -34,7 +34,7 @@ class TrainerBuilder:
         if "lr_monitor" in callback_configs:
             callbacks.append(LearningRateMonitor(**callback_configs.lr_monitor))
 
-        if "early_monitor" in callback_configs:
+        if "early_stopping" in callback_configs:
             callbacks.append(EarlyStopping(**callback_configs.early_stopping))
 
         return callbacks
