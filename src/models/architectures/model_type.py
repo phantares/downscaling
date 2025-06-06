@@ -5,6 +5,8 @@ from .swin_unet import SwinUnet
 from .unet import UNet
 from .unet_lcl import UNetLCL
 from .discriminator import Discriminator
+from .unet_class import UNetClass
+from .swin_unet_class import SwinUnetClass
 
 
 class ModelType(Enum):
@@ -13,3 +15,5 @@ class ModelType(Enum):
     unet = UNet
     unet_lcl = UNetLCL
     discriminator = Discriminator
+    unet_class = UNetClass
+    swin_class = SwinUnetClass
