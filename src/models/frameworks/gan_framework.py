@@ -1,11 +1,10 @@
 from lightning import LightningModule
-from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 import torch.nn as nn
 
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, MapPlotter
+from ...utils import get_scheduler_with_warmup, set_scaling
 
 
 class GanFramework(LightningModule):
@@ -13,6 +12,12 @@ class GanFramework(LightningModule):
     def __init__(self, model_configs) -> None:
         super().__init__()
         self.save_hyperparameters()
+
+        self.scaling = False
+        if "scaling" in model_configs.framework.config:
+            if model_configs.framework.config.scaling.execute:
+                self.scaling = True
+                self.rain_scaling = set_scaling(model_configs.framework.config.scaling)
 
         self.weight = model_configs.framework.discriminator.weight
         self.discriminator = ModelType[
@@ -31,11 +36,20 @@ class GanFramework(LightningModule):
         self.automatic_optimization = False
         self.test_outputs = []
 
-    def forward(self, input):
-        return self.generator(input)
+    def forward(self, inputs):
+        if self.scaling:
+            inputs = list(inputs)
+            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
 
-    def general_step(self, input, target):
-        output = self(input)
+        output = self.generator(*inputs)
+
+        return output
+
+    def general_step(self, inputs, target):
+        if self.scaling:
+            target = self.rain_scaling.standardize(target)
+
+        output = self(*inputs)
         loss = self.loss_g(output, target)
 
         return loss, output
@@ -59,11 +73,11 @@ class GanFramework(LightningModule):
 
     def training_step(self, batch, batch_index: int):
         optimizer_g, optimizer_d = self.optimizers()
-        input, target = batch
-        batch_size = input.shape[0]
+        *inputs, target = batch
+        batch_size = inputs[-1].shape[0]
 
         self.toggle_optimizer(optimizer_g)
-        loss_g, output = self.calculate_generator_loss(input, target, batch_size)
+        loss_g, output = self.calculate_generator_loss(inputs, target, batch_size)
         optimizer_g.zero_grad()
         self.manual_backward(loss_g)
         optimizer_g.step()
@@ -84,16 +98,11 @@ class GanFramework(LightningModule):
             sync_dist=True,
         )
 
-        if batch_index == 0:
-            self.log_tensorboard_image(f"train/input", input[0, 0])
-            self.log_tensorboard_image(f"train/target", target[0, 0])
-            self.log_tensorboard_image(f"train/output", output[0, 0])
-
     def validation_step(self, batch, batch_index: int):
-        input, target = batch
-        batch_size = input.shape[0]
+        *inputs, target = batch
+        batch_size = inputs[-1].shape[0]
 
-        loss_g, output = self.calculate_generator_loss(input, target, batch_size)
+        loss_g, output = self.calculate_generator_loss(inputs, target, batch_size)
         loss_d = self.calculate_discriminator_loss(output, target, batch_size)
 
         self.log_dict(
@@ -104,20 +113,11 @@ class GanFramework(LightningModule):
             sync_dist=True,
         )
 
-        if batch_index in [1, 13, 16, 19]:
-            case = f"case_{batch_index}"
-
-            if self.current_epoch == 1:
-                self.log_tensorboard_image(f"{case}/input", input[0, 0])
-                self.log_tensorboard_image(f"{case}/target", target[0, 0])
-
-            self.log_tensorboard_image(f"{case}/output", output[0, 0])
-
         return loss_g
 
     def test_step(self, batch, batch_index: int):
-        input, target = batch
-        loss, output = self.general_step(input, target)
+        *inputs, target = batch
+        loss, output = self.general_step(inputs, target)
 
         self.log(
             f"test_loss",
@@ -127,6 +127,9 @@ class GanFramework(LightningModule):
             prog_bar=True,
             sync_dist=True,
         )
+
+        if self.scaling:
+            output = self.rain_scaling.inverse(output)
 
         self.test_outputs.append(output.numpy())
 
@@ -161,21 +164,3 @@ class GanFramework(LightningModule):
         total_loss = self.weight * (loss_fake + loss_real) / 2
 
         return total_loss
-
-    def log_tensorboard_image(self, title: str, data):
-        logger = self.get_tensorboard_logger()
-
-        plotter = MapPlotter(data)
-        logger.add_figure(
-            title,
-            plotter.plot_map(),
-            global_step=self.global_step,
-        )
-
-    def get_tensorboard_logger(self):
-        for logger in self.trainer.loggers:
-            if isinstance(logger, TensorBoardLogger):
-                tensorboard_logger = logger.experiment
-                return tensorboard_logger
-
-        raise ValueError("TensorboardLogger not found in trainer")
