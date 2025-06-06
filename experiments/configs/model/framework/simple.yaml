@@ -3,9 +3,9 @@ config:
   scaling:
     execute: True
     rain:
-      method: log_norm
+      method: linear
       config:
-        eps: 1e2
+        max_val: 200
     #other:
     #  method: robust
     #  config: {}

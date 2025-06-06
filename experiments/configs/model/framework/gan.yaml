@@ -1,4 +1,11 @@
 name: gan
+config:
+  scaling:
+    execute: True
+    rain:
+      method: log_norm
+      config:
+        eps: 1e-2
 discriminator:
   name: discriminator
   weight: 0.015
