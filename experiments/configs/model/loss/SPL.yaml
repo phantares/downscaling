@@ -4,4 +4,4 @@ config:
   thresholds_MSE: [0, 10, 25, 50, 100]
   window_size: 9
   integral_number: 1000
-  weights_SP: [1e-1, 1e5]
+  weights_SP: [1e0, 1e5]
