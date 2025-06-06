@@ -2,11 +2,13 @@ fit:
   config:
     accelerator: gpu
     benchmark: True
-    max_epochs: 200
+    max_epochs: 300
 
   callbacks:
+    figure: simple
+
     checkpoint:
-      filename: "{epoch}-{step}-{val_loss: .6f}"
+      filename: "{epoch}-{step}-{val_loss:.6f}"
       monitor: val_loss
       save_top_k: 3
       save_last: True
@@ -15,8 +17,8 @@ fit:
     lr_monitor:
       logging_interval: step
 
-    early_stopping:
-      patience: 20
+    early_stopping: 
+      patience: 100
       monitor: val_loss
 
 test:

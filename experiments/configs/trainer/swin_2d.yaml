@@ -5,6 +5,8 @@ fit:
     max_steps: 1000000
 
   callbacks:
+    figure: simple
+
     checkpoint:
       filename: "{epoch}-{step}-{val_loss: .6f}"
       monitor: val_loss
