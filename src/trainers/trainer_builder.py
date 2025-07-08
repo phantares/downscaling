@@ -26,7 +26,7 @@ class TrainerBuilder:
     def _load_callbacks(self, callback_configs):
         callbacks = []
 
-        callbacks.append(FigureLoggerType[callback_configs.figure]).value()
+        callbacks.append(FigureLoggerType[callback_configs.figure].value())
 
         if "checkpoint" in callback_configs:
             callbacks.append(ModelCheckpoint(**callback_configs.checkpoint))
