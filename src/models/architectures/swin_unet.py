@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import repeat
 
 from .swin_transformer import SwinTransformerLayer
 
@@ -20,6 +21,7 @@ class SwinUnet(nn.Module):
         depths: list[int],
         surface_channels: int,
         upper_channels: int = 0,
+        scalar_channels: int = 0,
         upper_levels: int = 0,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
@@ -38,6 +40,7 @@ class SwinUnet(nn.Module):
             depths (list[int]): Number of swin transformer blocks in each layer.
             surface_channels (int): Channels of surface variables.
             upper_channels (int, optional): Channels of upper variables. Default: 0
+            scalar_channels (int, optional): Channels of scalar variables. Default: 0
             upper_levels (int, optional): Number of levels in upper tensor. Default: 0
             drop_rate (float, optional): Dropout rate. Default: 0.0
             attn_drop (float, optional): Attention dropout rate. Default: 0.0
@@ -51,11 +54,6 @@ class SwinUnet(nn.Module):
 
         self.interp = interpolation
         self.res = residual
-
-        self.scaling = False
-        if "scaling" in configs:
-            self.scaling = True
-            self.scaling_configs = configs["scaling"]
 
         num_layers = len(depths)
         image_shape = [upper_levels] + image_shape
@@ -71,6 +69,7 @@ class SwinUnet(nn.Module):
             dim=embed_dim,
             surface_channels=surface_channels,
             upper_channels=upper_channels,
+            scalar_channels=scalar_channels,
         )
 
         self.layers = nn.ModuleList()
@@ -118,11 +117,13 @@ class SwinUnet(nn.Module):
         self,
         input_surface: torch.Tensor,
         input_upper: torch.Tensor | None = None,
+        input_scalar: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             input_surface (torch.Tensor): (B, C_surface, imgH, imgW).
             input_upper (torch.Tensor, optional): (B, C_upper, imgZ, imgH, imgW).
+            input_scalar (torch.Tensor): (B, C_scalar).
         Returns:
             x (torch.Tensor): (B, 1, imgH, imgW)
         """
@@ -132,7 +133,7 @@ class SwinUnet(nn.Module):
             if input_upper is not None:
                 input_upper = F.interpolate(input_upper, size=tuple(self.shape))
 
-        x = self.patch_embed(input_surface, input_upper)
+        x = self.patch_embed(input_surface, input_upper, input_scalar)
         x = self.layers[0](x)
         skip = x
         x = self.downsample(x)
@@ -163,6 +164,7 @@ class PatchEmbedding(nn.Module):
         dim: int,
         surface_channels: int,
         upper_channels: int = 0,
+        scalar_channels: int = 0,
     ) -> None:
         """
         Args:
@@ -170,12 +172,13 @@ class PatchEmbedding(nn.Module):
             dim (int): Dimension of output embedding.
             surface_channels (int): Channels of surface variables.
             upper_channels (int, optional): Channels of upper variables. Default: 0
+            scalar_channels (int, optional): Channels of scalar variables. Default: 0
         """
 
         super().__init__()
 
         self.conv_surface = nn.Conv2d(
-            in_channels=surface_channels,
+            in_channels=surface_channels + scalar_channels,
             out_channels=dim,
             kernel_size=patch_shape[1:],
             stride=patch_shape[1:],
@@ -193,14 +196,23 @@ class PatchEmbedding(nn.Module):
         self,
         input_surface: torch.Tensor,
         input_upper: torch.Tensor | None = None,
+        input_scalar: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Args:
             input_surface (torch.Tensor): (B, C_surface, imgH, imgW).
             input_upper (torch.Tensor, optional): (B, C_upper, imgZ, imgH, imgW).
+            input_scalar (torch.Tensor): (B, C_scalar).
         Returns:
             x (torch.Tensor): (B, Z*H*W, dim).
         """
+
+        if input_scalar is not None:
+            B, _, H, W = input_surface.shape
+            scalar_map = repeat(input_scalar, "b c -> b c h w", h=H, w=W)
+            input_surface = torch.cat(
+                [input_surface, scalar_map], 1
+            )  # (B, C_surface+C_scalar, H, W)
 
         embedding_surface = self.conv_surface(input_surface)  # (B, dim, H, W)
         x = embedding_surface.unsqueeze(-3)  # (B, dim, 1, H, W)
