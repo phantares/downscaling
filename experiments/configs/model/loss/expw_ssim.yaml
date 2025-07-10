@@ -1,0 +1,7 @@
+name: expw_ssim
+config:
+  b: 3
+  c: 3
+  scale_expw: 1
+  scale_ssim: 0.1
+  weights: [1, 1]
