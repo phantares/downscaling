@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import itertools
 
-from .weightedMSE import WeightedMSE
-from .CRPS import CRPS
+from .threshold_wmse import ThresholdWMSE
+from .crps import CRPS
 
 
 class SPL(nn.Module):
@@ -14,15 +14,15 @@ class SPL(nn.Module):
         thresholds_MSE,
         window_size: int = 9,
         integral_number: int = 1000,
-        weights_SP=[1e-4, 1],
+        weights=[1e-4, 1],
     ):
         super().__init__()
 
-        self.weights_MSE = torch.tensor(weights_MSE).float()
-        self.thresholds = thresholds_MSE
         self.window_size = window_size
-        self.number = integral_number
-        self.weights_SP = weights_SP
+
+        self.wmse = ThresholdWMSE(weights_MSE, thresholds_MSE)
+        self.crps = CRPS(integral_number)
+        self.register_buffer("weights", torch.tensor(weights, dtype=torch.float32))
 
     def forward(self, prediction, target):
         prediction_disturbance = prediction - self._running_mean(
@@ -30,10 +30,10 @@ class SPL(nn.Module):
         )
         target_disturbance = target - self._running_mean(target, self.window_size)
 
-        mse = WeightedMSE(self.weights_MSE, self.thresholds).forward(prediction, target)
-        crps = CRPS(self.number).forward(prediction_disturbance, target_disturbance)
+        wmse = self.wmse.forward(prediction, target)
+        crps = self.crps.forward(prediction_disturbance, target_disturbance)
 
-        return self.weights_SP[0] * mse + self.weights_SP[1] * crps
+        return self.weights[0] * wmse + self.weights[1] * crps
 
     def _running_mean(self, data, window_size: int, dim: int = 2):
         padding = window_size // 2

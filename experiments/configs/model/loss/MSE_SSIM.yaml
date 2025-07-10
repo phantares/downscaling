@@ -1,3 +1,0 @@
-name: MSE_SSIM
-config:
-  weights: [1, 1]
