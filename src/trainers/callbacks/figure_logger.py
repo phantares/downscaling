@@ -22,8 +22,8 @@ class FigureLogger(Callback):
         with torch.no_grad():
             batch = self.train_batch
 
-            *inputs, target = batch
-            output = pl_module(*inputs)
+            inputs, target = batch
+            output = pl_module(**inputs)
 
             if pl_module.scaling:
                 output = pl_module.rain_scaling.inverse(output)
@@ -38,8 +38,8 @@ class FigureLogger(Callback):
             return
 
         with torch.no_grad():
-            *inputs, target = batch
-            output = pl_module(*inputs)
+            inputs, target = batch
+            output = pl_module(**inputs)
 
             if pl_module.scaling:
                 output = pl_module.rain_scaling.inverse(output)

@@ -1,6 +1,8 @@
 from torch.utils.data import Dataset
 import numpy as np
+
 from ...file_readers import Hdf5Reader
+from ...utils import TimeLoader
 
 
 class PrecipitationDataset(Dataset):
@@ -12,6 +14,7 @@ class PrecipitationDataset(Dataset):
             "Variables/precipitation",
         ],
         targets_name: list[str] = ["Variables/target"],
+        add_time: bool = False,
     ):
 
         super().__init__()
@@ -23,6 +26,12 @@ class PrecipitationDataset(Dataset):
 
         self.datas, self.targets = self._stack_data(variables_name, targets_name)
 
+        self.scalars = []
+        if add_time:
+            time_scalars = TimeLoader(files=self.files).load()
+            self.scalars.extend(time_scalars)
+        self.scalars = np.array(self.scalars, dtype=np.float32)
+
     def __len__(self):
         length = 0
         for file in self.files:
@@ -31,11 +40,18 @@ class PrecipitationDataset(Dataset):
         return length
 
     def __getitem__(self, index: int):
-        return (
-            self.datas[
+        input = {
+            "input_surface": self.datas[
                 :,
                 index,
-            ],
+            ]
+        }
+
+        if len(self.scalars) > 0:
+            input["input_scalar"] = self.scalars[:, index]
+
+        return (
+            input,
             self.targets[
                 :,
                 index,

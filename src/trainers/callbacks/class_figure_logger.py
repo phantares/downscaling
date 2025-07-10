@@ -22,8 +22,8 @@ class ClassFigureLogger(Callback):
         with torch.no_grad():
             batch = self.train_batch
 
-            *inputs, target = batch
-            output, class_output = pl_module(*inputs)
+            inputs, target = batch
+            output, class_output = pl_module(**inputs)
             output = output.detach().cpu() * class_output.detach().cpu()
 
             if pl_module.scaling:
@@ -39,8 +39,8 @@ class ClassFigureLogger(Callback):
             return
 
         with torch.no_grad():
-            *inputs, target = batch
-            output, class_output = pl_module(*inputs)
+            inputs, target = batch
+            output, class_output = pl_module(**inputs)
             output = output.detach().cpu() * class_output.detach().cpu()
 
             if pl_module.scaling:
