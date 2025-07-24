@@ -26,8 +26,8 @@ class ClassFigureLogger(Callback):
             output, class_output = pl_module(**inputs)
             output = output.detach().cpu() * class_output.detach().cpu()
 
-            if pl_module.scaling:
-                output = pl_module.rain_scaling.inverse(output)
+            if pl_module.scaler.scale_rain:
+                output = pl_module.scaler.rain_scaler.inverse(output)
 
             self.log_tensorboard_image(trainer, f"train/target", target[0, 0])
             self.log_tensorboard_image(trainer, f"train/output", output[0, 0])
@@ -43,8 +43,8 @@ class ClassFigureLogger(Callback):
             output, class_output = pl_module(**inputs)
             output = output.detach().cpu() * class_output.detach().cpu()
 
-            if pl_module.scaling:
-                output = pl_module.rain_scaling.inverse(output)
+            if pl_module.scaler.scale_rain:
+                output = pl_module.scaler.rain_scaler.inverse(output)
 
             case = f"case_{batch_index}"
             if trainer.current_epoch == self.val_epoch:

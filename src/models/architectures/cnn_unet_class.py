@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 
-class UNetClass(nn.Module):
+class CnnUnetClass(nn.Module):
     def __init__(
         self,
         in_channels: int = 1,
@@ -80,9 +80,9 @@ class UNetClass(nn.Module):
             nn.Conv2d(4, out_channels, **configs["conv"]), nn.Sigmoid()
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        input = x
-        x = self.input(x)
+    def forward(self, input_surface: torch.Tensor) -> torch.Tensor:
+        input = input_surface
+        x = self.input(input_surface)
 
         skip_connections = []
         for layer in range(self.num_layers):

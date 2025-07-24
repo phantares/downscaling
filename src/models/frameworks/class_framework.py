@@ -1,9 +1,10 @@
 from lightning import LightningModule
 import torch
 
+from ..scaling_functions import ScalerLoader
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, set_scaling
+from ...utils import get_scheduler_with_warmup
 
 
 class ClassFramework(LightningModule):
@@ -12,12 +13,7 @@ class ClassFramework(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.scaling = False
-        if "scaling" in model_configs.framework.config:
-            if model_configs.framework.config.scaling.execute:
-                self.scaling = True
-                self.rain_scaling = set_scaling(model_configs.framework.config.scaling)
-
+        self.scaler = ScalerLoader(model_configs)
         self.model = ModelType[model_configs.architecture.name].value(
             **model_configs.architecture.config
         )
@@ -28,22 +24,18 @@ class ClassFramework(LightningModule):
 
         self.test_outputs = []
 
-    def forward(self, *inputs):
-        if self.scaling:
-            inputs = list(inputs)
-            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
-
-        output, class_output = self.model(*inputs)
+    def forward(self, **inputs):
+        inputs = self.scaler.scale(**inputs)
+        output, class_output = self.model(**inputs)
 
         return output, class_output
 
-    def general_step(self, target, *inputs, training: bool = False):
+    def general_step(self, inputs, target, training: bool = False):
         target_class = (target > 0).float()
+        if self.scaler.scale_rain:
+            target = self.scaler.rain_scaler.standardize(target)
 
-        if self.scaling:
-            target = self.rain_scaling.standardize(target)
-
-        output, class_output = self(*inputs)
+        output, class_output = self(**inputs)
 
         if training and self.trainer.current_epoch < 10:
             gated_output = output
@@ -81,8 +73,8 @@ class ClassFramework(LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_index: int):
-        *inputs, target = batch
-        loss, output, class_output = self.general_step(target, *inputs, training=True)
+        inputs, target = batch
+        loss, output, class_output = self.general_step(inputs, target, training=True)
 
         self.log(
             f"train_loss",
@@ -96,8 +88,8 @@ class ClassFramework(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_index: int):
-        *inputs, target = batch
-        loss, output, class_output = self.general_step(target, *inputs)
+        inputs, target = batch
+        loss, output, class_output = self.general_step(inputs, target)
 
         self.log(
             f"val_loss",
@@ -111,9 +103,8 @@ class ClassFramework(LightningModule):
         return loss
 
     def test_step(self, batch, batch_index: int):
-        *inputs, target = batch
-        loss, output, class_output = self.general_step(target, *inputs)
-        # output = output * class_output
+        inputs, target = batch
+        loss, output, class_output = self.general_step(inputs, target)
         output = output * (class_output > 0.5).float()
 
         self.log(
@@ -125,9 +116,9 @@ class ClassFramework(LightningModule):
             sync_dist=True,
         )
 
-        if self.scaling:
-            output = self.rain_scaling.inverse(output)
+        if self.scaler.scale_rain:
+            output = self.scaler.rain_scaler.inverse(output)
 
-        self.test_outputs.append(output.numpy())
+        self.test_outputs.append(output.cpu().numpy())
 
         return loss
