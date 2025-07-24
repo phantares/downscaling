@@ -10,14 +10,17 @@ class ScalerLoader(nn.Module):
         self.rain_scaler = None
         self.scale_weather = False
         self.weather_scaler = None
-        self.include_rain = model_configs.framework.config.get("include_rain", True)
 
         if "scaling" in model_configs:
+
             if "rain" in model_configs.scaling:
                 self.scale_rain = True
                 self.rain_scaler = self._set_scaler(model_configs.scaling.rain)
 
             if "weather" in model_configs.scaling:
+                self.include_rain = model_configs.scaling.weather.get(
+                    "include_rain", True
+                )
                 self.scale_weather = True
                 self.weather_scaler = self._set_scaler(model_configs.scaling.weather)
 

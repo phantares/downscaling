@@ -1,0 +1,4 @@
+rain:
+  method: linear
+  config:
+    max_val: 20
