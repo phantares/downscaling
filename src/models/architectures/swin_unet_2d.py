@@ -76,8 +76,8 @@ class SwinUnet2D(nn.Module):
             kernel_size=3, stride=1, padding=1, count_include_pad=False
         )
 
-    def visual_layers(self, x):
-        x = self.patch_embedded(x)
+    def forward(self, input_surface):
+        x = self.patch_embedded(input_surface)
         x = x.flatten(2).transpose(1, 2)
         x = self.layers[0](x)
         skip_con = x
@@ -101,7 +101,3 @@ class SwinUnet2D(nn.Module):
         x = self.avg_pool(x)
 
         return x
-
-    def forward(self, windy_EC):
-        pred_rainfall = self.visual_layers(windy_EC)
-        return pred_rainfall

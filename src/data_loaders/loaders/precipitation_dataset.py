@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 
 from ...file_readers import Hdf5Reader
-from ...utils import TimeLoader
+from .time_loader import TimeLoader
 
 
 class PrecipitationDataset(Dataset):

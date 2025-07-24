@@ -2,9 +2,10 @@ from lightning import LightningModule
 import torch
 import torch.nn as nn
 
+from ..scaling_functions import ScalerLoader
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, set_scaling
+from ...utils import get_scheduler_with_warmup
 
 
 class GanFramework(LightningModule):
@@ -13,13 +14,8 @@ class GanFramework(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.scaling = False
-        if "scaling" in model_configs.framework.config:
-            if model_configs.framework.config.scaling.execute:
-                self.scaling = True
-                self.rain_scaling = set_scaling(model_configs.framework.config.scaling)
+        self.scaler = ScalerLoader(model_configs)
 
-        self.weight = model_configs.framework.discriminator.weight
         self.discriminator = ModelType[
             model_configs.framework.discriminator.name
         ].value(**model_configs.framework.discriminator.config)
@@ -27,6 +23,7 @@ class GanFramework(LightningModule):
             **model_configs.architecture.config
         )
 
+        self.weight = model_configs.framework.discriminator.weight
         self.loss_g = LossType[model_configs.loss.name].value(
             **model_configs.loss.config
         )
@@ -36,20 +33,14 @@ class GanFramework(LightningModule):
         self.automatic_optimization = False
         self.test_outputs = []
 
-    def forward(self, inputs):
-        if self.scaling:
-            inputs = list(inputs)
-            inputs[-1] = self.rain_scaling.standardize(inputs[-1])
-
-        output = self.generator(*inputs)
+    def forward(self, **inputs):
+        inputs = self.scaler.scale(**inputs)
+        output = self.generator(**inputs)
 
         return output
 
     def general_step(self, inputs, target):
-        if self.scaling:
-            target = self.rain_scaling.standardize(target)
-
-        output = self(*inputs)
+        output = self(**inputs)
         loss = self.loss_g(output, target)
 
         return loss, output
@@ -73,8 +64,8 @@ class GanFramework(LightningModule):
 
     def training_step(self, batch, batch_index: int):
         optimizer_g, optimizer_d = self.optimizers()
-        *inputs, target = batch
-        batch_size = inputs[-1].shape[0]
+        inputs, target = batch
+        batch_size = inputs["input_surface"].size(0)
 
         self.toggle_optimizer(optimizer_g)
         loss_g, output = self.calculate_generator_loss(inputs, target, batch_size)
@@ -99,8 +90,8 @@ class GanFramework(LightningModule):
         )
 
     def validation_step(self, batch, batch_index: int):
-        *inputs, target = batch
-        batch_size = inputs[-1].shape[0]
+        inputs, target = batch
+        batch_size = inputs["input_surface"].size(0)
 
         loss_g, output = self.calculate_generator_loss(inputs, target, batch_size)
         loss_d = self.calculate_discriminator_loss(output, target, batch_size)
@@ -116,7 +107,7 @@ class GanFramework(LightningModule):
         return loss_g
 
     def test_step(self, batch, batch_index: int):
-        *inputs, target = batch
+        inputs, target = batch
         loss, output = self.general_step(inputs, target)
 
         self.log(
@@ -128,15 +119,15 @@ class GanFramework(LightningModule):
             sync_dist=True,
         )
 
-        if self.scaling:
-            output = self.rain_scaling.inverse(output)
+        if self.scaler.scale_rain:
+            output = self.scaler.rain_scaler.inverse(output)
 
-        self.test_outputs.append(output.numpy())
+        self.test_outputs.append(output.cpu().numpy())
 
         return loss
 
-    def calculate_generator_loss(self, input, target, batch_size):
-        loss_pred, output_fake = self.general_step(input, target)
+    def calculate_generator_loss(self, inputs, target, batch_size):
+        loss_pred, output_fake = self.general_step(inputs, target)
 
         output_disguise = self.discriminator(output_fake)
         loss_disguise = self.loss_d(

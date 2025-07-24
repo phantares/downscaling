@@ -14,7 +14,7 @@ from src.trainers import TrainerBuilder
 def main(path: str, as_onnx: bool = False) -> None:
     cfg = OmegaConf.load(Path("experiments", path, ".hydra", "config.yaml"))
 
-    checkpoints = list(Path("checkpoints", path).glob("*.ckpt"))
+    checkpoints = list(Path("checkpoints", path).glob("epoch*.ckpt"))
     best_model = find_best_model(checkpoints)
 
     framework = ModelBuilder(cfg.model).get_framework()

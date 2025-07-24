@@ -2,18 +2,14 @@ from enum import Enum
 
 from .swin_unet_2d import SwinUnet2D
 from .swin_unet import SwinUnet
-from .unet import UNet
-from .unet_lcl import UNetLCL
+from .cnn_unet import CnnUnet
 from .discriminator import Discriminator
-from .unet_class import UNetClass
-from .swin_unet_class import SwinUnetClass
+from .cnn_unet_class import CnnUnetClass
 
 
 class ModelType(Enum):
     swin_unet_2d = SwinUnet2D
     swin_unet = SwinUnet
-    unet = UNet
-    unet_lcl = UNetLCL
+    cnn_unet = CnnUnet
     discriminator = Discriminator
-    unet_class = UNetClass
-    swin_class = SwinUnetClass
+    cnn_unet_class = CnnUnetClass
