@@ -1,7 +1,7 @@
-name: SPL
+name: spl
 config:
-  weights_MSE: [8, 10, 25, 50, 100]
-  thresholds_MSE: [10, 25, 50, 100]
+  weights_wmse: [8, 10, 25, 50, 100]
+  thresholds_wmse: [10, 25, 50, 100]
   window_size: 9
   integral_number: 1000
   weights: [1e0, 1e5]

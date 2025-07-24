@@ -1,3 +1,4 @@
-name: CRPS
+name: crps
 config:
+  window_size: 9
   integral_number: 1000

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from .exp_wmse import ExpWMSE
-from .SSIM import SSIM
+from .ssim import SSIM
 
 
 class ExpwSSIM(nn.Module):

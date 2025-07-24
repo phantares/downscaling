@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class ExpWMSE(nn.Module):
-    def __init__(self, b=5, c=1, scale=200):
+    def __init__(self, b=3, c=3, scale=200):
         super().__init__()
 
         self.b = b
