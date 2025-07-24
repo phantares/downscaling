@@ -47,6 +47,5 @@ tensorboard --logdir=<log_path> --port=<port_number> --bind_all
 pipenv shell
 
 # test
-python test.py file/sub_file
+python test.py experiment_name/sub_experiment_name
 ```
-- Run only by CPU.
