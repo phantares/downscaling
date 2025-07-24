@@ -22,6 +22,7 @@ class SwinUnet(nn.Module):
         surface_channels: int,
         upper_channels: int = 0,
         scalar_channels: int = 0,
+        output_channels: int = 1,
         upper_levels: int = 0,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
@@ -41,6 +42,7 @@ class SwinUnet(nn.Module):
             surface_channels (int): Channels of surface variables.
             upper_channels (int, optional): Channels of upper variables. Default: 0
             scalar_channels (int, optional): Channels of scalar variables. Default: 0
+            output_channels (int, optional): Channels of output variables. Default: 1
             upper_levels (int, optional): Number of levels in upper tensor. Default: 0
             drop_rate (float, optional): Dropout rate. Default: 0.0
             attn_drop (float, optional): Attention dropout rate. Default: 0.0
@@ -109,6 +111,7 @@ class SwinUnet(nn.Module):
             input_shape=(Z, H, W),
             patch_shape=patch_shape[1:],
             dim=embed_dim * 2,
+            output_channels=output_channels,
         )
 
         self.relu = nn.ReLU()
@@ -237,6 +240,7 @@ class PatchRecovery(nn.Module):
         input_shape: tuple[int, int, int],
         patch_shape: tuple[int, int],
         dim: int,
+        output_channels: int,
     ) -> None:
         """
 
@@ -244,6 +248,7 @@ class PatchRecovery(nn.Module):
             input_shape (tuple[int, int, int]): Shape of input after patch embedding (Z, H, W).
             patch_shape (tuple[int, int]): Shape of patch (pH, pW).
             dim (int): Numbers of input channels.
+            output_channels (int): Numbers of output channels.
         """
 
         super().__init__()
@@ -252,7 +257,7 @@ class PatchRecovery(nn.Module):
 
         self.deconv = nn.ConvTranspose2d(
             in_channels=dim,
-            out_channels=1,
+            out_channels=output_channels,
             kernel_size=patch_shape,
             stride=patch_shape,
         )
