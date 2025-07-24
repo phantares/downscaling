@@ -3,9 +3,9 @@ defaults:
   - data/config: single
   - model/framework: simple
   - model/architecture: swin_unet 
-  - model/loss: MSE_SSIM
+  - model/loss: spl
   - model/optimizer: AdamW 
-  - trainer: swin_2d 
+  - trainer: swin
   - _self_
 
 experiment:
