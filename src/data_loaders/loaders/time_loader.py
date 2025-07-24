@@ -2,7 +2,7 @@ from datetime import datetime
 import calendar
 import numpy as np
 
-from .constants import SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE
+from ..constants import SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE
 
 
 class TimeLoader:
