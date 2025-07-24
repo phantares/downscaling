@@ -1,9 +1,10 @@
 from lightning import LightningModule
 import torch
 
+from ..scaling_functions import ScalerLoader
 from ..architectures import ModelType
 from ..loss_functions import LossType
-from ...utils import get_scheduler_with_warmup, set_scaling
+from ...utils import get_scheduler_with_warmup
 
 
 class SimpleFramework(LightningModule):
@@ -12,16 +13,7 @@ class SimpleFramework(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.scaling = False
-        if "scaling" in model_configs.framework.config:
-            if model_configs.framework.config.scaling.execute:
-                self.scaling = True
-                self.rain_scaling = set_scaling(model_configs.framework.config.scaling)
-
-        self.include_rain = True
-        if "include_rain" in model_configs.framework.config:
-            self.include_rain = model_configs.framework.config.include_rain
-
+        self.scaler = ScalerLoader(model_configs)
         self.model = ModelType[model_configs.architecture.name].value(
             **model_configs.architecture.config
         )
@@ -31,23 +23,14 @@ class SimpleFramework(LightningModule):
         self.test_outputs = []
 
     def forward(self, **inputs):
-        if self.scaling and self.include_rain:
-            rain = inputs["input_surface"][
-                :,
-                -1,
-            ]
-            inputs["input_surface"][
-                :,
-                -1,
-            ] = self.rain_scaling.standardize(rain)
-
+        inputs = self.scaler.scale(**inputs)
         output = self.model(**inputs)
 
         return output
 
-    def general_step(self, target, **inputs):
-        if self.scaling:
-            target = self.rain_scaling.standardize(target)
+    def general_step(self, inputs, target):
+        if self.scaler.scale_rain:
+            target = self.scaler.rain_scaler.standardize(target)
 
         output = self(**inputs)
         loss = self.loss(output, target)
@@ -79,7 +62,7 @@ class SimpleFramework(LightningModule):
 
     def training_step(self, batch, batch_index: int):
         inputs, target = batch
-        loss, output = self.general_step(target, **inputs)
+        loss, output = self.general_step(inputs, target)
 
         self.log(
             f"train_loss",
@@ -94,7 +77,7 @@ class SimpleFramework(LightningModule):
 
     def validation_step(self, batch, batch_index: int):
         inputs, target = batch
-        loss, output = self.general_step(target, **inputs)
+        loss, output = self.general_step(inputs, target)
 
         self.log(
             f"val_loss",
@@ -109,7 +92,7 @@ class SimpleFramework(LightningModule):
 
     def test_step(self, batch, batch_index: int):
         inputs, target = batch
-        loss, output = self.general_step(target, **inputs)
+        loss, output = self.general_step(inputs, target)
 
         self.log(
             f"test_loss",
@@ -120,9 +103,9 @@ class SimpleFramework(LightningModule):
             sync_dist=True,
         )
 
-        if self.scaling:
-            output = self.rain_scaling.inverse(output)
+        if self.scaler.scale_rain:
+            output = self.scaler.rain_scaler.inverse(output)
 
-        self.test_outputs.append(output.numpy())
+        self.test_outputs.append(output.cpu().numpy())
 
         return loss

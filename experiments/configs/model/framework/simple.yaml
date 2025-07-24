@@ -1,11 +1,2 @@
 name: simple
-config:
-  scaling:
-    execute: True
-    rain:
-      method: linear
-      config:
-        max_val: 200
-    #other:
-    #  method: robust
-    #  config: {}
+config: {}
