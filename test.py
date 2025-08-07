@@ -41,17 +41,26 @@ def main(path: str, as_onnx: bool = False) -> None:
 
     if as_onnx:
         data_loader.setup("fit")
-        input, _ = next(iter(data_loader.train_dataloader()))
+        input_dict, _ = next(iter(data_loader.train_dataloader()))
+        input_keys = list(input_dict.keys())
+        input = tuple(input_dict[k].to("cpu") for k in input_keys)
+
+        model.eval()
+        onnx_model = OnnxWrapper(model.cpu(), input_keys)
+        onnx_model = onnx_model.eval()
+
+        dynamic_axes = {k: {0: "batch_size"} for k in input_keys}
+        dynamic_axes["output"] = {0: "batch_size"}
 
         onnx_file = Path("checkpoints", path, f"{path.replace('/', '_')}.onnx")
         torch.onnx.export(
-            model.cpu(),
-            input.to("cpu"),
+            onnx_model,
+            input,
             onnx_file,
             export_params=True,
-            input_names=["input"],
+            input_names=input_keys,
             output_names=["output"],
-            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+            dynamic_axes=dynamic_axes,
         )
 
 
@@ -73,6 +82,17 @@ def find_best_model(checkpoints):
                         best_model = checkpoint
 
     return best_model
+
+
+class OnnxWrapper(torch.nn.Module):
+    def __init__(self, model, input_keys):
+        super().__init__()
+        self.model = model
+        self.keys = input_keys
+
+    def forward(self, *inputs):
+        inputs = {k: v for k, v in zip(self.keys, inputs)}
+        return self.model(**inputs)
 
 
 if __name__ == "__main__":
