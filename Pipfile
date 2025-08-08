@@ -36,6 +36,8 @@ torchmetrics = "==1.7.1"
 torch = {version = "==2.7.0", index = "downloadpytorch"}
 torchvision = {version = "==0.22.0", index = "downloadpytorch"}
 torchaudio = {version = "==2.7.0", index = "downloadpytorch"}
+onnxruntime = "1.22.1"
+scipy = "1.15.3"
 
 [dev-packages]
 
