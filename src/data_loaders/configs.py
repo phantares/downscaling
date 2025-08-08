@@ -1,0 +1,1 @@
+HOURS_PER_STEP = 6

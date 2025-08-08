@@ -2,7 +2,7 @@ import numpy as np
 
 from ...file_readers import Hdf5Reader
 from ...utils import get_lonlat_index
-from ..constants import HOURS_PER_STEP
+from ..configs import HOURS_PER_STEP
 
 SURFACE_VARIABLES = ["mslet", "10u", "10v", "2t", "precip"]
 UPPER_VARIABLES = ["z", "q", "t", "u", "v"]
